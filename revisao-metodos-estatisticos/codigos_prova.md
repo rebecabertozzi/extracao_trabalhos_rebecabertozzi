@@ -176,11 +176,13 @@ df['NOME_DA_COLUNA'].describe()
 
 Primeiro, sempre calcular Q1, Q3 e AIQ (base pros dois limites):
 
+```python
 Q1 = 3.8
 Q3 = 12.5
 AIQ = Q3 - Q1
 limite_superior = Q3 + 1.5 * AIQ
 print(AIQ, limite_superior)
+```
 
 ```python
 Q1 = df['NOME_DA_COLUNA'].quantile(0.25)

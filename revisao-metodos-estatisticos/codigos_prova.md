@@ -1,4 +1,5 @@
-[codigos_prova (1).md](https://github.com/user-attachments/files/32495419/codigos_prova.1.md)
+[codigos_prova (2).md](https://github.com/user-attachments/files/32495516/codigos_prova.2.md)
+
 # Códigos Prontos — Consulta Rápida
 
 *Comandos testados. Cada um mostra o que trocar (varia por questão) e o que não muda (sempre igual).*
@@ -7,7 +8,7 @@
 
 1. [Sempre no início](#1-sempre-no-início-uma-vez-só-por-sessão)
 2. [Abrir um arquivo de dados](#2-abrir-um-arquivo-de-dados)
-3. [Primeira olhada nos dados](#3-dar-uma-primeira-olhada-nos-dados)
+3. [Outras olhadas nos dados](#3-outras-olhadas-nos-dados-além-do-head)
 4. [Verificar consistência dos dados](#4-verificar-consistência-dos-dados-percentuais-somam-100)
 5. [Percentual de "outros"](#5-calcular-o-percentual-de-outros-quando-a-soma-não-bate-100)
 6. [Gráfico de barras — sem categoria nova](#6-gráfico-de-barras-1-variável-qualitativa--sem-precisar-criar-categoria-nova)
@@ -38,40 +39,35 @@ import matplotlib.pyplot as plt
 
 ---
 
-2. Abrir um arquivo de dados + primeira olhada (pronto pra copiar e colar)
+## 2. Abrir um arquivo de dados + primeira olhada (pronto pra copiar e colar)
 
-Se o arquivo for .xls ou .xlsx:
-
+**Se o arquivo for `.xls` ou `.xlsx`:**
 ```python
 df = pd.read_excel('NOME_DO_ARQUIVO.xls')
 df.head()
 ```
-Se o arquivo for .csv:
 
+**Se o arquivo for `.csv`:**
 ```python
 df = pd.read_csv('NOME_DO_ARQUIVO.csv')
 df.head()
 ```
-O que trocar: NOME_DO_ARQUIVO.xls (ou .csv) → pelo nome exato do arquivo que o enunciado da questão menciona (copiar certinho, com maiúsculas e a extensão certa). O que NÃO muda: pd.read_excel(...) / pd.read_csv(...) (escolhe o bloco certo conforme a extensão do arquivo) e o df.head() embaixo. Pra que serve o df.head(): mostra as 5 primeiras linhas da tabela — é assim que você descobre os nomes reais das colunas, que vai usar nos códigos seguintes.## 2. Abrir um arquivo de dados
 
-```python
-df = pd.read_excel('NOME_DO_ARQUIVO.xls')   # para .xls ou .xlsx
-df = pd.read_csv('NOME_DO_ARQUIVO.csv')     # para .csv
-```
-**O que trocar:** `NOME_DO_ARQUIVO.xls` → pelo nome exato do arquivo que o enunciado da questão menciona (copiar certinho, com maiúsculas).
-**O que NÃO muda:** `df = pd.read_excel(...)` / `pd.read_csv(...)` — escolhe uma das duas linhas, dependendo da extensão do arquivo.
+**O que trocar:** `NOME_DO_ARQUIVO.xls` (ou `.csv`) → pelo nome exato do arquivo que o enunciado da questão menciona (copiar certinho, com maiúsculas e a extensão certa).
+**O que NÃO muda:** `pd.read_excel(...)` / `pd.read_csv(...)` (escolhe o bloco certo conforme a extensão do arquivo) e o `df.head()` embaixo.
+**Pra que serve o `df.head()`:** mostra as 5 primeiras linhas da tabela — é assim que você descobre os nomes reais das colunas, que vai usar nos códigos seguintes.
 
 ---
 
-## 3. Dar uma primeira olhada nos dados
+## 3. Outras olhadas nos dados (além do `head()`)
 
 ```python
-df.head()      # mostra as 5 primeiras linhas
 df.shape       # mostra (nº de linhas, nº de colunas)
 df.columns     # lista os nomes das colunas
 df.dtypes      # mostra o tipo de cada coluna (número, texto, data...)
 ```
-**O que trocar:** nada. Rodar sempre depois de abrir um arquivo novo, pra ver os nomes reais das colunas (você vai usar esses nomes nos próximos códigos).
+**O que trocar:** nada.
+**Quando usar:** rodar quando precisar confirmar quantas linhas/colunas tem a tabela, ver todos os nomes de coluna de uma vez, ou checar se uma coluna está sendo lida como número ou como texto.
 
 ---
 

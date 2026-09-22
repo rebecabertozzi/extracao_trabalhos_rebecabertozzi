@@ -38,7 +38,21 @@ import matplotlib.pyplot as plt
 
 ---
 
-## 2. Abrir um arquivo de dados
+2. Abrir um arquivo de dados + primeira olhada (pronto pra copiar e colar)
+
+Se o arquivo for .xls ou .xlsx:
+
+```python
+df = pd.read_excel('NOME_DO_ARQUIVO.xls')
+df.head()
+```
+Se o arquivo for .csv:
+
+```python
+df = pd.read_csv('NOME_DO_ARQUIVO.csv')
+df.head()
+```
+O que trocar: NOME_DO_ARQUIVO.xls (ou .csv) → pelo nome exato do arquivo que o enunciado da questão menciona (copiar certinho, com maiúsculas e a extensão certa). O que NÃO muda: pd.read_excel(...) / pd.read_csv(...) (escolhe o bloco certo conforme a extensão do arquivo) e o df.head() embaixo. Pra que serve o df.head(): mostra as 5 primeiras linhas da tabela — é assim que você descobre os nomes reais das colunas, que vai usar nos códigos seguintes.## 2. Abrir um arquivo de dados
 
 ```python
 df = pd.read_excel('NOME_DO_ARQUIVO.xls')   # para .xls ou .xlsx

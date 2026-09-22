@@ -1,6 +1,14 @@
+[tecnica_escolha_codigo.md](https://github.com/user-attachments/files/32521801/tecnica_escolha_codigo.md)
+
 # Técnica Rápida — Qual código usar?
 
 *Guia de bolso pra decidir, em segundos, qual código do "Códigos Prontos" usar em cada questão da prova.*
+
+## Índice
+
+1. [O método: 2 perguntas antes de qualquer código](#o-método-2-perguntas-antes-de-qualquer-código)
+2. [Cada tema × o que o enunciado vai pedir](#cada-tema--o-que-o-enunciado-vai-pedir)
+3. [Na hora H](#na-hora-h)
 
 ---
 
@@ -15,33 +23,28 @@ Toda vez que ler uma questão, pare e responda:
 **Pergunta 2: Qual o tipo dessa(s) variável(is)?**
 - **Qualitativa** (categoria, palavra) ou **Quantitativa** (número)?
 
-Com essas duas respostas, você já sabe exatamente qual seção do doc de Códigos usar.
+Com essas duas respostas, você já reduz bastante as opções. A tabela abaixo fecha a escolha.
 
 ---
 
-## Tabela de decisão
+## Cada tema × o que o enunciado vai pedir
 
-| Tem... | E é... | Vai em... (seção do Códigos Prontos) |
+| # (Códigos Prontos) | Tema | Palavra/frase que aparece no enunciado |
 |---|---|---|
-| 1 variável | Qualitativa | Gráfico de barras/pizza (seções 6-7) |
-| 1 variável | Quantitativa, quer distribuição | Histograma (9) ou describe/5 números (10) |
-| 1 variável | Quantitativa, quer "valor repetido" | Moda (12) |
-| 1 variável | Quantitativa, quer "valor estranho" | Boxplot (13) ou regra AIQ (11) |
-| 1 variável quanti, mas **2 grupos/arquivos** pra comparar | — | Boxplot lado a lado (14) |
-| 1 variável quanti **ao longo do tempo** | — | Gráfico de linha (8) |
-| 2 variáveis | As 2 qualitativas | Tabela de dupla entrada (15) |
-| 2 variáveis | As 2 quantitativas | Dispersão (16) + Pearson (17) |
-
----
-
-## Palavras-chave do enunciado que já entregam a resposta
-
-- **"distribuição", "resumo dos 5 números", "forma da distribuição"** → histograma/describe
-- **"valor atípico"** (1 variável só) → AIQ/boxplot
-- **"compare os grupos"** / dois arquivos de uma vez → boxplot lado a lado
-- **"associação", "depende de"** + 2 categorias → tabela de dupla entrada
-- **"correlação", "análise bidimensional"** + 2 números → dispersão + Pearson
-- **"ao longo do tempo/anos"** → gráfico de linha
+| 4 | Verificar consistência dos dados | "verifique a consistência", "os dados fazem sentido?", percentuais que deveriam somar 100% |
+| 5 | Percentual de "outros" | "quais formatos/categorias **não estão listados**", pede pra achar o que falta pra completar 100% |
+| 6 | Gráfico de barras (sem categoria nova) | 1 variável **qualitativa**, tabela já vem completa — "faça um gráfico", "apresente esses dados" |
+| 7 | Gráfico de barras + categoria "Outros" | pede pra **incluir uma categoria "Outro"** que não vem pronta na tabela |
+| 8 | Gráfico de linha / temporal | "**ao longo do tempo**", "evolução", "por ano/mês", "gráfico temporal", "que padrão geral..." |
+| 9 | Histograma | "faça um **histograma**", "descreva a **distribuição**", "forma, centro e dispersão" |
+| 10 | Resumo dos 5 números / describe | "**resumo dos 5 números**", "média", "desvio padrão", "quartis" |
+| 11 | Regra 1,5×AIQ (valor atípico, 1 variável) | "**valor atípico**" falando de 1 variável só (sem gráfico de dispersão envolvido) |
+| 12 | Moda | "qual a **moda**" |
+| 13 | Boxplot | "**boxplot**", "quartis e valores atípicos", "faça uma análise completa" (média/moda/mediana/quartis) |
+| 14 | Boxplot lado a lado | pede pra **comparar 2 grupos/bases** da mesma variável (ex: 2 arquivos diferentes) — "análises comparativas" |
+| 15 | Tabela de dupla entrada | 2 variáveis **qualitativas** + "**associação**", "**depende de**", "isso influencia aquilo?" |
+| 16 | Diagrama de dispersão | 2 variáveis **quantitativas** + "associação geral positiva ou negativa", "diagrama de dispersão" |
+| 17 | Correlação de Pearson | "**correlação**", "**análise bidimensional**", "ajuda a explicar", "quão forte é a relação" |
 
 ---
 
@@ -49,7 +52,7 @@ Com essas duas respostas, você já sabe exatamente qual seção do doc de Códi
 
 1. Lê a questão.
 2. Marca mentalmente: "1 ou 2 variáveis?" e "quali ou quanti?".
-3. Vai direto no número da seção no índice do doc de Códigos Prontos.
-4. Copia, cola, ajusta os nomes das colunas (`df.head()` sempre primeiro).
+3. Procura na tabela acima a palavra-chave que bateu com o enunciado.
+4. Vai direto no número da seção no índice do doc de Códigos Prontos, copia, cola, ajusta os nomes das colunas (`df.head()` sempre primeiro).
 
 Não precisa reler o documento inteiro — só usar essa tabela como bússola.

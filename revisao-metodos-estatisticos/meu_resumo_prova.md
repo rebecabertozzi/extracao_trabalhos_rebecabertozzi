@@ -157,7 +157,7 @@ Dá pra confirmar a forma sem nem olhar o gráfico, só comparando média e medi
 
 ---
 
-## 7. `.describe()` — o que cada linha quer dizer
+## 7. Describe() — o que cada linha quer dizer
 
 ```python
 df['NOME_DA_COLUNA'].describe()

@@ -1,7 +1,29 @@
-[meu_resumo_prova.md](https://github.com/user-attachments/files/32495260/meu_resumo_prova.md)
+[meu_resumo_prova (1).md](https://github.com/user-attachments/files/32519693/meu_resumo_prova.1.md)
+
 # Meu Resumo — Métodos Estatísticos
 
 *Resumo enxuto, feito enquanto eu estudo. Vou atualizando conforme avanço nos temas.*
+
+## Índice
+
+0. [Como abrir tudo no dia da prova](#0-como-abrir-tudo-no-dia-da-prova)
+1. [Como ler o enunciado](#1-como-ler-o-enunciado-garimpar-a-questão)
+2. [Bússola: que análise fazer?](#2-bússola-que-análise-fazer)
+3. [Pandas básico](#3-pandas-básico-o-que-já-testei)
+4. [Tipos de variáveis](#4-tipos-de-variáveis)
+5. [Pizza ou barras?](#5-pizza-setores-ou-barras-como-decidir)
+6. [Histograma e assimetria](#6-histograma-e-assimetria)
+7. [.describe() — o que cada linha quer dizer](#7-describe-o-que-cada-linha-quer-dizer)
+8. [AIQ e a regra 1,5×AIQ](#8-aiq-e-a-regra-15aiq-valor-atípico)
+9. [Série temporal (gráfico de linha)](#9-série-temporal-gráfico-de-linha)
+10. [Moda e boxplot](#10-moda-e-boxplot)
+11. [Tabela de dupla entrada](#11-tabela-de-dupla-entrada-associação-entre-2-qualitativas)
+12. [Diagrama de dispersão](#12-diagrama-de-dispersão-2-variáveis-quantitativas)
+13. [Unidimensional vs. bidimensional](#13-unidimensional-vs-bidimensional)
+14. [Correlação de Pearson (r)](#14-correlação-de-pearson-r)
+15. [Temas pendentes](#15-temas-que-ainda-vou-preencher-aqui)
+
+*(Se algum link não pular certinho, usa Ctrl+F e busca o número ou o nome do tema.)*
 
 ---
 

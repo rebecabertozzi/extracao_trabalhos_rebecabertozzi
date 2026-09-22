@@ -1,6 +1,28 @@
+[gabarito_revisao (2).md](https://github.com/user-attachments/files/32519606/gabarito_revisao.2.md)
+
+
 # Gabarito da Revisão
 
 *Respostas das questões do notebook `Revisão.ipynb`, resolvidas junto com o Claude.*
+
+## Índice — questão × técnica usada
+
+1. [Questão 1 — Classificação de variáveis](#questão-1-classifique-as-variáveis) *(teoria, sem código)*
+2. [Questão 2 — Gráfico de barras](#questão-2-qual-área-de-estudo-arquivo-habilitaxls)
+3. [Questão 3 — Gráfico de barras + categoria "Outros"](#questão-3-você-ouve-rádio-arquivo-formatoradioxls)
+4. [Questão 4 — Histograma + AIQ](#questão-4-nascidos-fora-arquivo-nascidosforaxls)
+5. [Questão 5 — Gráfico de linha / série temporal](#questão-5-custo-faculdade-arquivo-faccustoxls)
+7. [Questão 7 — Boxplot (moda, mediana, comparação de 2 grupos)](#questão-7-tempo-de-viagem-ao-trabalho-arquivos-tempoviagemcnxls-e-tempoviagemnyxls)
+9. [Questão 9 — Tabela de dupla entrada](#questão-9-parar-de-fumar-arquivo-cessafumoxls)
+8. [Questão 8 — Diagrama de dispersão (associação/concordância)](#questão-8-estados-felizes-arquivo-felicidadexls)
+10. [Questão 10 — Dispersão + Correlação de Pearson](#questão-10-escores-sat-estaduais-arquivo-satmatxls)
+11. [Questão 11 — Pesquisa externa](#questão-11-índice-de-desenvolvimento-da-educação-básica-ideb) *(sem código)*
+6. [Questão 6 — Histograma](#questão-6-emissão-co2-arquivo-emissaoco2xls)
+12. [Questão 12 — Classificação de faixas + Tabela de dupla entrada](#questão-12-análise-de-renda-arquivo-infofamiliasentrevistadascsv)
+13. [Questão 13 — Histograma + Dispersão + Pearson](#questão-13-idh-oecd-arquivo-oecd_idh_datacsv)
+14. [Questão 14 — Bivariada geral (todas as técnicas, conforme o par)](#questão-14-censo-demográfico-dos-estados-brasileiros-em-2000-arquivo-censo_estadosxlsx)
+
+*(Se algum link não pular certinho, usa Ctrl+F e busca o número da questão.)*
 
 ---
 

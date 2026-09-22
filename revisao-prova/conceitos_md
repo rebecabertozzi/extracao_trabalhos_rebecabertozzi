@@ -1,0 +1,115 @@
+
+# Conceitos — Extração e Análise de Dados
+
+O que cada ideia significa, em linguagem simples. O código de cada uma está no arquivo **codigos.md**.
+
+| Tema | Vá para |
+| --- | --- |
+| tabela, linha, coluna, tipos, ausente | [1](#1-a-tabela) |
+| bruto x tratado, limpeza | [2](#2-limpeza) |
+| taxa, média, mediana, agrupar | [3](#3-métricas-e-resumos) |
+| gráficos e como ler | [4](#4-gráficos) |
+| associação, causa, amostra pequena | [5](#5-o-que-os-dados-permitem-dizer) |
+| aprendizado de máquina, X, y, vazamento | [6](#6-aprendizado-de-máquina) |
+| regressão, MAE, R² | [7](#7-regressão) |
+| classificação, precisão, recall, corte | [8](#8-classificação) |
+| clusterização | [9](#9-clusterização) |
+
+## 1. A tabela
+
+- **DataFrame:** a tabela do pandas.
+- **Linha:** um registro. No simulado, cada linha é uma publicação.
+- **Coluna:** uma variável, uma característica de cada registro (tema, alcance, data).
+- **Tipo da coluna (`dtype`):** `int64` = número inteiro, `float64` = número com decimal, `object`/`str` = texto, `datetime64` = data. Só dá pra fazer conta com número. Coluna numérica que tem algum ausente vira `float64`.
+- **Valor ausente (`NaN`, ou `NaT` em data):** célula vazia, sem informação.
+- **Unidade de análise:** o que cada linha representa. Se a tabela já veio resumida (percentual por categoria), a unidade original é quem gerou os dados, por exemplo cada publicação ou cada pessoa.
+
+## 2. Limpeza
+
+- **Bruto x tratado:** o bruto é o dado como chegou e nunca é sobrescrito. A limpeza acontece numa cópia ou numa variável nova. Assim dá pra conferir o que mudou e refazer se precisar.
+- **Duplicata:** o mesmo registro aparece mais de uma vez. "Por id" quer dizer que basta repetir o identificador pra contar como duplicata, mesmo que outra coluna mude.
+- **Padronizar texto:** fazer grafias diferentes da mesma coisa virarem uma só (`Cultura`, `cultura ` e `cultura`). Maiúscula e espaço sobrando se resolvem com comando. Acento ou sinônimo (`saúde` e `saude`) pedem uma tabela de equivalência escrita à mão.
+- **Converter tipo:** transformar texto em número ou em data pra poder calcular.
+- **Datas misturadas:** a mesma coluna pode ter `2026-08-01` (ano primeiro) e `05/08/2026` (dia primeiro). Sem dizer o formato, o pandas deduz pela primeira linha e transforma em `NaT` o que não encaixa. E `dayfirst=True` na coluna toda troca dia e mês das datas que começam pelo ano. Nenhum dos dois dá erro vermelho, então sempre confira a menor e a maior data.
+- **Tratar ausentes:** há três saídas. Descartar a linha (quando o campo é essencial), preencher (só com um valor que não finja ser dado real) ou manter ausente e registrar. O importante é explicar o porquê. Só descarte por campo que você vai usar no cálculo.
+- **Valor inválido:** está lá, mas não faz sentido. Por exemplo alcance zero (a divisão explode), contagem negativa ou nota fora da escala.
+
+## 3. Métricas e resumos
+
+- **Métrica:** qualquer número calculado (curtidas médias, taxa).
+- **Indicador:** a métrica que você escolhe acompanhar porque ajuda numa decisão.
+- **Taxa:** uma divisão, algo sobre um total. Engajamento é taxa, nunca número bruto: 50 mil curtidas em 5 milhões de visualizações (1%) é pior que 2 mil em 10 mil (20%). O denominador importa tanto quanto o numerador.
+- **Média:** soma dividida pela quantidade. É puxada por valores extremos (um post viral).
+- **Mediana:** o valor do meio. Metade fica acima e metade abaixo, e ela resiste a extremos. Se a média é bem maior que a mediana, poucos casos grandes estão puxando a média.
+- **Quartis:** 25% dos valores ficam abaixo do 1º quartil, 50% abaixo da mediana e 75% abaixo do 3º quartil.
+- **Desvio padrão:** o quanto os valores se espalham em volta da média.
+- **Percentil 75:** o valor que separa os 25% maiores do resto.
+- **Agrupar (`groupby`):** juntar as linhas que têm o mesmo valor numa coluna (o mesmo tema) e calcular uma métrica por grupo.
+- **Cruzar duas variáveis:** agrupar por duas colunas ao mesmo tempo (tema e formato). Mostra coisas que olhar uma variável só esconde.
+
+## 4. Gráficos
+
+| Quero mostrar | Gráfico |
+| --- | --- |
+| comparar categorias | barras (horizontal se forem muitas ou tiverem nome comprido) |
+| mudança ao longo do tempo | linha |
+| relação entre dois números | dispersão |
+| o que o modelo mais usou | barras horizontais |
+
+Todo gráfico precisa de **título que diz a pergunta**, **nome nos dois eixos com unidade** e **fonte escrita no gráfico**. Um gráfico responde uma pergunta. Na **escala logarítmica**, as contas gigantes não espremem as pequenas num canto.
+
+## 5. O que os dados permitem dizer
+
+- **Associação não é causa:** se duas coisas andam juntas nos dados, isso não prova que uma provoca a outra. Pode haver outra explicação (reels concentram certos temas e horários). Só um experimento controlado mostraria causa.
+- **Amostra pequena:** com poucas publicações por grupo ou por dia, uma única peça muda a média ou a posição no ranking.
+- **Empate:** diferença pequena entre grupos pequenos não define vencedor. Diga que empatou e decida o que dá pra decidir.
+- **Tendência:** só se fala em tendência com muitos pontos e uma direção estável. Poucos dias com sobe e desce são só variação.
+- **Recorte escolhido pelo resultado:** pegar os 5 melhores de um grupo já filtrado não prova que o filtro funciona. Faltaria comparar com o que ficou de fora.
+- **Generalização:** uma base só (uma organização, uma campanha) não representa todas as redes nem todos os públicos.
+
+## 6. Aprendizado de máquina
+
+- **Supervisionado:** o modelo aprende com exemplos em que a resposta é conhecida. Regressão e classificação são supervisionados.
+- **Não supervisionado:** não há resposta, o modelo só agrupa por semelhança. É a clusterização.
+- **X (características, features):** as colunas de entrada. Só podem entrar coisas que já se sabe **antes** de publicar (tema, formato, horário, legenda, perfil do autor).
+- **y (alvo):** o que se quer prever.
+- **Vazamento:** usar no X algo que só existe depois do resultado (alcance, curtidas, a própria taxa). O modelo "acerta" porque está olhando o gabarito e não serve pra nada. Um R² altíssimo de primeira costuma ser isso.
+- **`get_dummies`:** o modelo não entende texto. Cada categoria vira uma coluna de 0 e 1 (`tema_cultura`, `formato_reel`...).
+- **Treino e teste:** o modelo aprende com uma parte (treino) e é avaliado em outra que ele nunca viu (teste). É assim que se descobre se ele aprendeu ou só decorou.
+- **`random_state=42`:** fixa o sorteio, pra dar sempre o mesmo resultado.
+- **`stratify`:** mantém a mesma proporção de 0 e 1 no treino e no teste. Só existe em classificação.
+
+## 7. Regressão
+
+- **Quando:** o alvo é um **número contínuo** (taxa, visualizações).
+- **Regressão linear:** combina as características com pesos e soma. Enxerga relações em linha reta.
+- **Árvore de regressão:** faz perguntas encadeadas ("reel? mais de 5 hashtags?") e prevê um valor em cada ponta. Pega quebras que a linha reta não pega, mas precisa de mais dados. `max_depth` limita quantas perguntas ela faz.
+- **Modelo bobo:** chutar sempre a média do treino. Qualquer modelo que presta tem que ganhar dele.
+- **MAE (erro absoluto médio):** quanto a previsão erra em média, na unidade do alvo. MAE 0,35 numa taxa em % quer dizer que erra cerca de 0,35 ponto pra cima ou pra baixo. Quanto menor, melhor.
+- **R²:** quanto da variação o modelo explica. 1 é perfeito, 0 é igual ao modelo bobo, negativo é pior que ele.
+- **Coeficiente:** o peso de cada característica na linear. Só o sinal é comparável (positivo sobe junto, negativo desce junto), porque as escalas são diferentes.
+- **Cauda longa / `log1p`:** quando poucos valores são gigantes (visualizações), treina-se no log do alvo e desfaz-se depois (aula 11). Não caiu no simulado.
+
+## 8. Classificação
+
+- **Quando:** o alvo é uma **categoria**, quase sempre 0 ou 1 ("merece divulgação", "viralizou").
+- **Rótulo por corte:** a categoria não existe na base, **você** cria. Por exemplo 1 se a taxa está acima do percentil 75. A escolha do corte muda tudo.
+- **Classe desbalanceada:** muito mais 0 do que 1 (percentil 75 dá 25% de 1).
+- **Regressão logística:** apesar do nome, classifica. Ela dá uma probabilidade de ser 1.
+- **Árvore de classificação e Random Forest:** a Random Forest junta várias árvores sorteadas.
+- **`class_weight="balanced"`:** dá mais peso à classe rara pra ela não ser ignorada.
+- **Matriz de confusão:** conta os quatro resultados possíveis.
+  - VN: era 0 e o modelo disse 0 (acerto)
+  - FP: era 0 e o modelo disse 1 (**alarme falso**)
+  - FN: era 1 e o modelo disse 0 (**deixou passar**)
+  - VP: era 1 e o modelo disse 1 (acerto)
+- **Acurácia:** acertos sobre o total. Engana com classe rara: dizer sempre 0 acerta 75% e não serve pra nada.
+- **Precisão:** dos que o modelo marcou como 1, quantos eram mesmo. Sobe quando há poucos alarmes falsos.
+- **Recall:** dos que eram 1, quantos o modelo achou. Sobe quando deixa passar pouca coisa.
+- **F1:** o equilíbrio entre precisão e recall. Serve pra escolher o melhor modelo.
+- **Corte de decisão (threshold):** o `predict` chama de 1 quando a probabilidade passa de 0,5. Baixar o corte (0,30) pega mais casos (mais recall) e costuma errar mais pro outro lado (menos precisão). A escolha depende do custo de cada erro no caso.
+- **Importância (`feature_importances_`):** o quanto a árvore usou cada característica pra separar os dados. Não é causa, e com poucos dados o ranking muda fácil.
+
+## 9. Clusterização
+
+Não caiu no simulado. Agrupa registros parecidos sem ter resposta. **Padronizar** coloca todas as colunas na mesma régua, senão a de maior escala manda sozinha. O **KMeans** pede o número de grupos (k). Pra escolher o k, use o **cotovelo** (a inércia para de cair) e a **silhueta** (perto de 1 = grupos bem separados). Os números dos grupos são só etiquetas, e quem dá nome a cada grupo é você.

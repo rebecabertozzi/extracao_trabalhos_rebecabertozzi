@@ -1,5 +1,5 @@
 .
-# Conceitos — Extração e Análise de Dado
+# Conceitos — Extração e Análise de Dados
 
 O que cada ideia significa, em linguagem simples. O código de cada uma está no arquivo **codigos.md**.
 

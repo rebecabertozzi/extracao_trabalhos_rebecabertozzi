@@ -1,4 +1,5 @@
-[codigos.md](https://github.com/user-attachments/files/32540960/codigos.md)
+[codigos (1).md](https://github.com/user-attachments/files/32544870/codigos.1.md)
+
 # Códigos — quando e como usar
 
 Todo código aqui vem das aulas ou da resolução do simulado, e foi testado na base do simulado. Em cada bloco: **Quando usar** (as palavras do enunciado), **Como usar** (o que trocar) e **Cuidado** (a armadilha). `# TROQUE` marca a linha que você adapta. O que cada termo significa está em **conceitos.md**.
@@ -36,6 +37,25 @@ ausentes = df.isna().sum()
 print(ausentes[ausentes > 0])           # só colunas com ausência
 ```
 
+### Mostrar na tela
+
+O código só mostra o que você **manda mostrar**. Comandos que **fazem** algo (abrir, remover, converter) não aparecem na tela.
+
+| Jeito | Como aparece |
+| --- | --- |
+| `print(coisa)` | como texto; use pra tudo que quiser ver no meio da célula |
+| `coisa` sozinha **na última linha** da célula | como tabela bonita (só funciona na última linha) |
+
+| Quero ver | Código |
+| --- | --- |
+| a tabela (5 primeiras linhas) | `print(q2.head())` |
+| uma coluna inteira | `print(q2["tema"])` |
+| resumo de uma coluna de texto (cada valor e quantas vezes) | `print(q2["tema"].value_counts())` |
+| várias colunas | `print(q2[["coluna1", "coluna2"]].head())` (dois colchetes) |
+| quantas linhas | `print(len(q2))` |
+| o tipo das colunas | `print(q2.dtypes)` |
+| menor e maior valor | `print(q2["coluna"].min(), q2["coluna"].max())` |
+
 ## 2. Limpar a base
 
 **Quando usar:** "tratamento", "prepare os dados", "duplicidade", "padronizar", "formatos distintos", "converter", "tratar ausências", "crie a taxa". É a Q2.
@@ -51,7 +71,7 @@ print(ausentes[ausentes > 0])           # só colunas com ausência
 
 ```python
 df = pd.read_csv("dados/publicacoes_brutas.csv")          # variável nova, do bruto
-# a) duplicidade por id
+# a) duplicidade: veja o quadro "Duplicatas: com ou sem subset" logo abaixo
 print(df[df.duplicated(subset="id_publicacao", keep=False)])   # as cópias lado a lado
 print("duplicadas:", df.duplicated(subset="id_publicacao").sum())
 df = df.drop_duplicates(subset="id_publicacao", keep="first")
@@ -78,6 +98,172 @@ print("descartadas:", antes - len(df), "| restam:", len(df))
 # f) a taxa
 df["taxa_utilidade_pct"] = (df["compartilhamentos"] + df["salvamentos"]) / df["alcance"] * 100   # TROQUE: fórmula
 ```
+
+### Duplicatas: com ou sem `subset`
+
+**Como pensar:** leia se o enunciado diz **"por alguma coluna"**.
+
+| O enunciado diz | Use | O que conta como duplicata |
+| --- | --- | --- |
+| "remover duplicidade **por id_publicacao**" | com `subset` | o **id** se repete, mesmo que outra coluna esteja diferente |
+| "remover registros duplicados", "linhas repetidas" (sem "por") | sem `subset` | a linha é **igualzinha em todas as colunas** |
+
+**Com `subset`** (o enunciado disse "por id_publicacao"):
+
+```python
+print("duplicadas:", df.duplicated(subset="id_publicacao").sum())   # olhar: quantas tem
+df = df.drop_duplicates(subset="id_publicacao", keep="first")       # consertar: remove, fica a 1ª
+print("linhas depois:", len(df))                                    # olhar de novo
+```
+
+**Sem `subset`** (o enunciado só disse "duplicados"):
+
+```python
+print("duplicadas:", df.duplicated().sum())      # olhar: linhas iguais em todas as colunas
+df = df.drop_duplicates()                        # consertar: remove, fica a 1ª
+print("linhas depois:", len(df))                 # olhar de novo
+```
+
+O que cada parte faz:
+- `duplicated()` marca cada linha com "é repetida?". O `.sum()` conta quantas são.
+- `drop_duplicates()` remove as repetidas.
+- `subset="coluna"` diz "pra decidir, olhe **só** esta coluna". Se o enunciado disser "por" outra coluna, troque o nome.
+- `keep="first"` guarda a primeira vez que aparece e apaga as seguintes. Sem ele, o padrão já é esse.
+- `df =` na frente salva a tabela já limpa. Sem isso, nada muda.
+- `len(df)` conta as linhas, pra conferir quantas sobraram.
+
+No simulado, os dois jeitos dão o mesmo resultado (36 → 35), porque as duas cópias do `OCB-018` são idênticas. Use o que o enunciado pedir.
+
+### Padronizar texto (tema)
+
+**Quando usar:** "padronizar", "forma consistente", "nomes escritos de formas diferentes".
+
+**Qual é o problema:** o mesmo tema escrito de jeitos diferentes (`cultura`, `Cultura`, `"mobilidade "`, `Saúde`). Pro Python, qualquer letra ou espaço diferente vira outro tema. Aí a tabela por tema sai errada.
+
+**Como pensar:** olhar → consertar → olhar de novo.
+
+1. **Olhar** com `value_counts()`. Ele lista cada escrita diferente e quantas vezes aparece. Se o enunciado diz que são 4 temas e aparecem 7 linhas, sobram escritas erradas. As erradas costumam aparecer 1 vez só. Se um tema aparece **duas vezes igualzinho**, tem um **espaço invisível**.
+2. **Consertar** com o comando certo pra cada problema:
+
+| Problema | Comando | Exemplo no simulado |
+| --- | --- | --- |
+| espaço sobrando (invisível) | `.str.strip()` | `"mobilidade "` → `"mobilidade"` |
+| letra maiúscula | `.str.lower()` | `Cultura` → `cultura` |
+| acento, abreviação ou qualquer outra escrita diferente | `.replace({"errado": "certo"})` | `saúde` → `saude` |
+
+3. **Olhar de novo** com `value_counts()`. Tem que sobrar só o número certo de temas.
+
+O que cada parte faz:
+- `q2["tema"]` pega só a coluna tema (nome da tabela + nome da coluna entre colchetes e aspas).
+- `print(q2["tema"].value_counts())` serve pra **ver a coluna em resumo**: cada valor diferente e quantas vezes aparece. É o melhor jeito de achar escrita errada. Pra ver a coluna inteira, linha por linha, use `print(q2["tema"])`. Funciona com qualquer coluna, é só trocar o nome.
+- `.str` avisa que vem um comando de texto (vai antes de `strip` e `lower`).
+- `replace` quer dizer "substituir". Na tabelinha `{ }`, à esquerda fica como está escrito e à direita como deve ficar. O que colocar ali você **copia do `value_counts`**.
+- `q2["tema"] =` na frente salva o resultado de volta na coluna. Sem isso, nada muda.
+
+**Código pronto:**
+
+```python
+print(q2["tema"].value_counts())                            # olhar: quais escritas existem
+q2["tema"] = q2["tema"].str.strip().str.lower()             # consertar: espaço e maiúscula
+print(q2["tema"].value_counts())                            # olhar de novo: o que sobrou
+q2["tema"] = q2["tema"].replace({"saúde": "saude"})         # consertar: o que sobrou (TROQUE conforme o que aparecer)
+print(q2["tema"].value_counts())                            # conferir: só os temas certos
+```
+
+### Converter tipos (data e número)
+
+**Quando usar:** "converter", "tipos adequados", "datas em formatos distintos", "colunas numéricas usadas no cálculo".
+
+**Como saber se precisa converter:** rode `print(q2.dtypes)`. Se uma coluna que deveria ser data ou número aparecer como **`object`** (= texto), precisa converter. Se já aparecer `int64`, `float64` ou `datetime64`, já está certa, e aí você **não** diz na resposta que converteu.
+
+**Qual comando usar:** olhe o que a coluna **deveria ser**.
+
+| A coluna deveria ser | Exemplo | Comando | Como conferir |
+| --- | --- | --- | --- |
+| data (com ou sem horário) | `2026-08-01 12:00`, `05/08/2026` | `pd.to_datetime(...)` | `.min()` e `.max()` batem com o período? `.isna().sum()` dá 0? |
+| número | `929`, `1548.0` | `pd.to_numeric(..., errors="coerce")` | `.dtypes` mostra `int64` ou `float64`? |
+
+#### Data
+
+O que cada parte faz:
+- `pd.to_datetime(...)` converte texto em data. Serve pra data com horário também, ele converte os dois juntos.
+- `format="mixed"` quer dizer "cada linha pode estar num formato diferente".
+- `dayfirst=True` quer dizer "na dúvida, o **dia** vem primeiro" (jeito brasileiro, `05/08/2026` = 5 de agosto).
+- `errors="coerce"` diz que, se não conseguir converter, vira vazio (`NaT`) em vez de travar.
+- `q2["data_publicacao"] =` na frente salva de volta na coluna.
+- `.min()` / `.max()` mostram a data mais antiga e a mais nova. Têm que bater com as datas que você viu antes de converter. Se aparecer um mês estranho, dia e mês foram trocados: use o bloco de duas passadas da seção 2 (letra c).
+- `.isna().sum()` conta as datas que não converteram. Tem que dar 0.
+
+**Código pronto:**
+
+```python
+print(q2["data_publicacao"])                                   # olhar: como as datas estão escritas
+q2["data_publicacao"] = pd.to_datetime(q2["data_publicacao"], format="mixed", dayfirst=True, errors="coerce")
+print(q2["data_publicacao"].min(), q2["data_publicacao"].max())   # conferir: período certo?
+print("NaT:", q2["data_publicacao"].isna().sum())              # conferir: tem que dar 0
+```
+
+Se a questão pedir **só o dia** ou **só a hora** (depois de converter):
+
+```python
+q2["dia_publicacao"] = q2["data_publicacao"].dt.date    # só a data, sem hora
+q2["hora"] = q2["data_publicacao"].dt.hour              # só a hora (0 a 23)
+```
+
+#### Número
+
+O que cada parte faz:
+- As colunas "usadas no cálculo" são as que aparecem na fórmula (no simulado: `alcance`, `compartilhamentos`, `salvamentos`).
+- `q2[["a", "b"]]` com **dois colchetes** pega várias colunas de uma vez.
+- `.dtypes` mostra o tipo de cada coluna.
+- `pd.to_numeric(..., errors="coerce")` converte texto em número. O que não for número vira vazio (`NaN`).
+- O `for c in cols:` repete a conversão pra cada coluna da lista.
+
+**Código pronto:**
+
+```python
+cols = ["alcance", "compartilhamentos", "salvamentos"]          # TROQUE: colunas da fórmula
+print(q2[cols].dtypes)                                          # olhar: object = texto
+for c in cols:
+    q2[c] = pd.to_numeric(q2[c], errors="coerce")               # converter
+print(q2[cols].dtypes)                                          # conferir: int64 ou float64
+```
+
+### Criar coluna calculada (taxa)
+
+**Quando usar:** "crie a coluna X, definida por..." e uma fórmula.
+
+**Como pensar:** é traduzir a fórmula do enunciado com os mesmos símbolos. `+` soma, `-` subtrai, `*` multiplica, `/` divide. Os parênteses fazem uma parte ser calculada antes, igual na matemática. O Python faz a conta **linha por linha**, sozinho.
+
+**Por que o nome da tabela antes de cada coluna:** a coluna pertence a uma tabela, e na prova existem várias (`q1`, `q2`, `q3`...), todas com as mesmas colunas. `q2["alcance"]` quer dizer "o alcance **da tabela q2**". É como endereço: a tabela é a rua, a coluna é a casa.
+
+**Molde genérico:**
+
+```python
+TABELA["COLUNA_NOVA"] = (TABELA["COLUNA_A"] + TABELA["COLUNA_B"]) / TABELA["COLUNA_C"] * 100
+```
+
+**O que trocar, com o exemplo do simulado:**
+
+| No molde | O que é | No simulado (Q2) |
+| --- | --- | --- |
+| `TABELA` | o nome da sua variável | `q2` |
+| `COLUNA_NOVA` | o nome que o enunciado manda criar | `taxa_utilidade_pct` |
+| `COLUNA_A`, `COLUNA_B` | as colunas de cima da fórmula | `compartilhamentos`, `salvamentos` |
+| `COLUNA_C` | a coluna de baixo da divisão | `alcance` |
+
+Fórmula do enunciado: taxa_utilidade_pct = (compartilhamentos + salvamentos) / alcance × 100
+
+**Código pronto (simulado):**
+
+```python
+q2["taxa_utilidade_pct"] = (q2["compartilhamentos"] + q2["salvamentos"]) / q2["alcance"] * 100
+print(q2["taxa_utilidade_pct"].head())      # olhar: as primeiras taxas
+```
+
+Se a fórmula for outra, só muda a conta. Por exemplo, "curtidas dividido por alcance": `q2["taxa"] = q2["curtidas"] / q2["alcance"]`.
+
+**Cuidado:** antes de criar a taxa, tire as linhas sem as colunas da fórmula e as com zero na coluna de baixo da divisão (letra e, no código da seção 2). Não existe divisão por zero.
 
 ## 3. Tabela por grupo e gráfico de barras
 
@@ -112,6 +298,33 @@ plt.show()
 # ax.barh(tabela["combinacao"][::-1], tabela["mediana"][::-1])    # [::-1] põe o maior no topo
 # no barh o valor fica no eixo X: set_xlabel("Mediana (%)"), set_ylabel("Tema / formato")
 ```
+
+### Agrupar: uma conta ou várias
+
+**Como saber que é `groupby`:** o enunciado diz **"por"**, "de cada" ou "para cada" (por tema, por dia, por formato). O que vem depois do "por" vai dentro do `groupby`.
+
+| O enunciado pede | Código |
+| --- | --- |
+| **uma** conta por grupo | `print(q2.groupby("tema")["coluna"].median())` |
+| **duas ou mais** contas por grupo | `q2.groupby("tema").agg(nome1=("coluna", "conta"), nome2=("coluna", "conta"))` |
+| agrupar por **duas** colunas | `groupby(["tema", "formato"])`, com lista |
+
+Dentro do `agg`, cada linha cria uma coluna no formato `nome_que_voce_escolhe=("coluna_de_origem", "conta")`:
+
+| O enunciado diz | Conta |
+| --- | --- |
+| quantidade, número de | `"count"` |
+| média | `"mean"` |
+| mediana | `"median"` |
+| total, soma | `"sum"` |
+
+| Ordem pedida | Código |
+| --- | --- |
+| da maior para a menor | `.sort_values("coluna", ascending=False)` |
+| da menor para a maior | `.sort_values("coluna")` |
+| cronológica (por data) | `.sort_values("coluna_do_dia")` |
+
+`.reset_index()` no fim do `agg` devolve o grupo (tema, formato) como coluna normal. Use quando precisar usar essa coluna depois, por exemplo pra juntar tema e formato num rótulo. Sem ele, o grupo fica como "índice" e se pega com `tabela.index`.
 
 ## 4. Por dia, recorte e top 5
 

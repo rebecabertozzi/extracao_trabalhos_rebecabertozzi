@@ -1,214 +1,204 @@
-[simulado.md](https://github.com/user-attachments/files/32540874/simulado.md)
-# Simulado Festival ViraBairro — enunciado e resolução
+[simulado (1).md](https://github.com/user-attachments/files/32544901/simulado.1.md)
 
-22/09/2026
+# Gabarito do simulado: Festival ViraBairro
 
-Enunciado das 8 questões e a resolução comentada do monitor. Os números são os da plataforma, mas na prova use só o que aparecer na **sua** tela. Tente fazer cada questão antes de abrir a resolução.
+Cada questão tem: **tema**, **arquivo**, cada item explicado **separado** e depois **tudo junto** pra copiar, e a **resposta escrita**. Os números são os da plataforma; na prova use os da **sua** tela.
 
-## O caso e os arquivos
-
-O Observatório Conexão Bairro (OCB), organização fictícia, coordena a comunicação do Festival ViraBairro: atividades gratuitas de cultura, mobilidade, saúde e trabalho. Em oito semanas a equipe publicou convites, serviços e guias em formatos diferentes, e registrou o que já sabia antes de publicar (horário, legenda, perfil) e os resultados depois. Faltam duas semanas pro festival e é preciso decidir onde gastar os poucos espaços de divulgação. Todos os dados são sintéticos.
-
-**Regras:** cada questão recarrega o arquivo numa variável nova. Não instale nada. Proibido usar IA. Consulta só a GitHub, noai.duckduckgo.com, documentação oficial (pandas, NumPy, Matplotlib, Altair, scikit-learn), Stack Overflow e YouTube.
-
-| Arquivo | Linhas | Colunas | Usado em |
-| --- | --- | --- | --- |
-| `dados/publicacoes_brutas.csv` (com problemas de propósito) | 36 | 12 | Q1, Q2 |
-| `dados/publicacoes_analise.csv` (já tratada) | 120 | 18 | Q3 a Q8 |
-
-**Bruta:** `id_publicacao`, `data_publicacao`, `tema`, `formato`, `alcance`, `curtidas`, `comentarios`, `compartilhamentos`, `salvamentos`, `seguidores_autor`, `videos_autor`, `duracao_segundos`. **Análise** tem essas e mais `tamanho_legenda`, `n_emojis`, `n_hashtags`, `hora`, `dia_semana` e `taxa_engajamento_pct`. Temas: cultura, mobilidade, saude, trabalho. Formatos: reel, carrossel, imagem (só três, então o `get_dummies` dá 15 colunas).
-
-| Questão | O que cobra | Aula |
+| Questão | Tema | Vá para |
 | --- | --- | --- |
-| 1 | Olhar a base | 5, 10 |
-| 2 | Limpeza | **10** |
-| 3 | Agrupar + barras | 5, 6 |
-| 4 | Tempo + filtro + ranking | 5, 6, 10 |
-| 5 | Agrupar por duas variáveis | 5, 6 |
-| 6 | Árvore + importâncias | 12 |
-| 7 | Regressão | 11 |
-| 8 | Classificação + corte | 12 |
+| 1 | Olhar a base (linhas, colunas, ausentes) | [Q1](#questão-1-diagnóstico-da-base) |
+| 2 | Limpeza (duplicata, texto, data, ausentes, taxa, tabela) | [Q2](#questão-2-limpeza-da-base) |
+| 3 | Tabela por grupo + gráfico de barras | [Q3](#questão-3-tabela-por-tema-e-barras) |
+| 4 | Data, tabela por dia, gráfico de linha, filtro, top 5 | [Q4](#questão-4-acompanhamento-diário) |
+| 5 | Tabela por duas colunas + barras horizontais | [Q5](#questão-5-tema-e-formato-juntos) |
+| 6 | Árvore de classificação + importâncias | [Q6](#questão-6-importâncias-da-árvore) |
+| 7 | Regressão (MAE, R², real x previsto) | [Q7](#questão-7-regressão) |
+| 8 | Classificação (3 modelos, matriz, corte) | [Q8](#questão-8-classificação-e-corte) |
+| — | Regras que valem pra todas | [Regras](#regras-que-valem-pra-todas) |
 
-**A lição do simulado:** as diferenças entre categorias são minúsculas e os grupos têm poucos casos. A resposta que ganha nota percebe o empate, diz isso e ainda entrega uma decisão. Antes de escrever, pergunte ao número: **quantos casos tem por trás dele?** E **qual a distância pro segundo colocado?**
+## Regras que valem pra todas
 
-## Questão 1: diagnóstico inicial da base
-
-### Enunciado
-
-A equipe recebeu uma base sem documentação. Em uma célula de código, carregue `dados/publicacoes_brutas.csv` e mostre: (1) as cinco primeiras linhas; (2) a quantidade de linhas e colunas; (3) a quantidade de valores ausentes por coluna, **mostrando somente as colunas que têm ao menos uma ausência**. Na Markdown, explique em até duas frases uma limitação que impeça tratar esses resultados como retrato de todas as redes, públicos ou bairros.
-
-### Armadilha
-
-"Somente as colunas com ausência": `isna().sum()` puro mostra também as de zero. Guarde numa variável e filtre por ela mesma.
-
-### Código
+- **Cada questão abre o arquivo numa variável nova** (`q1`, `q2`...), porque cada uma tem que funcionar sozinha.
+- **Só aparece na tela o que está em `print(...)`**, ou o que está sozinho na **última linha** da célula (aí sai como tabela bonita).
+- **Ritmo de todo passo:** olhar → consertar → olhar de novo.
+- **Imports** (uma vez, no topo da célula):
 
 ```python
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+```
 
+- **Avisos amarelos** `FigureCanvasAgg is non-interactive` e `ConvergenceWarning` **não são erro**.
+- **Na resposta:** use os números da tela, conte as frases pedidas, diga "associação, não causa" e cite a amostra pequena.
+
+## Questão 1: diagnóstico da base
+
+**Tema:** olhar a base antes de mexer. **Arquivo:** `publicacoes_brutas.csv`.
+
+**a) Abrir e ver as 5 primeiras linhas.** `read_csv` abre o arquivo; `head()` mostra as 5 primeiras.
+
+```python
 q1 = pd.read_csv("dados/publicacoes_brutas.csv")
-linhas, colunas = q1.shape
-print(f"A base tem {linhas} linhas e {colunas} colunas.")
+q1.head()
+```
+
+**b) Linhas e colunas.** `shape` devolve (linhas, colunas). Não leva parênteses.
+
+```python
+print(q1.shape)          # (36, 12)
+```
+
+**c) Ausentes só das colunas que têm.** `isna().sum()` conta os vazios de cada coluna; o filtro `[ausentes > 0]` tira as que deram zero (**a pegadinha**).
+
+```python
+ausentes = q1.isna().sum()
+print(ausentes[ausentes > 0])     # alcance 1, comentarios 1, salvamentos 1
+```
+
+**Tudo junto** (o `head` vai por último pra sair como tabela):
+
+```python
+q1 = pd.read_csv("dados/publicacoes_brutas.csv")
+print(q1.shape)
 ausentes = q1.isna().sum()
 print(ausentes[ausentes > 0])
 q1.head()
 ```
 
-### Resultado
+**Resposta (até 2 frases):**
 
-36 linhas e 12 colunas. Ausentes: `alcance` 1, `comentarios` 1, `salvamentos` 1.
+> A base traz apenas 36 registros de uma única organização, referentes a uma campanha específica, e não tem nenhuma coluna que identifique a rede social, o público ou o bairro de cada publicação. Com esse tamanho e sem essas informações, os resultados descrevem só este conjunto de publicações e não podem ser lidos como retrato de todas as redes, públicos ou bairros.
 
-### Resposta
+## Questão 2: limpeza da base
 
-> A base traz apenas 36 registros de uma única organização fictícia, referentes a uma campanha específica, e não tem nenhuma coluna que identifique a rede social, o público ou o bairro alcançado por cada publicação. Com esse tamanho e sem essas informações, os resultados descrevem só este conjunto de publicações e não podem ser lidos como retrato de todas as redes, públicos ou bairros do festival.
+**Tema:** limpar a base bruta e fazer uma tabela por tema. **Arquivo:** `publicacoes_brutas.csv`.
 
-Dá ponto porque aponta limitações que se enxergam na própria base (36 registros, sem coluna de rede ou bairro), não uma limitação genérica.
-
-## Questão 2: tratamento dos registros
-
-Foco da monitoria. É a questão mais longa e a nota vem tanto do código quanto das 4 frases de justificativa.
-
-### Enunciado
-
-A base tem nomes de temas escritos de formas diferentes, datas em formatos distintos, um registro duplicado e alguns valores ausentes. Prepare os dados sem criar informação que não esteja nos arquivos. Parta novamente de `dados/publicacoes_brutas.csv`, **em uma nova variável**, e faça o tratamento para:
-
-1. remover duplicidade por `id_publicacao`;
-2. padronizar os valores de `tema` para uma forma consistente;
-3. converter `data_publicacao` e as colunas numéricas usadas no cálculo para tipos adequados;
-4. tratar ausências ou valores inválidos de maneira justificada; e
-5. criar `taxa_utilidade_pct` = (compartilhamentos + salvamentos) / alcance × 100.
-
-Depois, produza uma tabela por tema com o número de publicações e a **mediana** de `taxa_utilidade_pct`, ordenada da maior para a menor. Não precisa salvar arquivo. Na Markdown, registre as decisões de limpeza em **até quatro frases**; se descartar, preencher ou converter algo, diga por quê.
-
-### Os quatro defeitos plantados na base
-
-| Defeito | Onde |
-| --- | --- |
-| 1 duplicidade por id | `OCB-018` aparece 2 vezes, igual nas 12 colunas |
-| grafias fora do padrão em `tema` | `Cultura` maiúsculo e `Saúde` com acento: depois de `strip` + `lower` sobram 5 valores pra 4 temas |
-| 3 formatos de data | `2026-08-01 12:00` (ISO), `05/08/2026 18:00` (brasileiro) e uma vez `2026/08/04 09:00` (ISO com barra, no `OCB-032`) |
-| 3 ausências, uma por coluna | `alcance` (`OCB-021`), `comentarios` (`OCB-025`), `salvamentos` (`OCB-029`) |
-
-A base **não** tem: linha sem tema, alcance zero, contagem negativa, data impossível, nem coluna numérica chegando como texto (elas são `float64` só porque têm ausência). Não diga na resposta que tratou isso.
-
-### As cinco armadilhas
-
-1. **Duplicidade por id, não por linha.** `drop_duplicates()` sem argumento só tira linhas iguais em todas as colunas. Use `subset="id_publicacao"` e olhe as cópias **antes** com `duplicated(..., keep=False)`.
-2. **`lower` não une acento.** Rode `value_counts` primeiro: `saude` 11 ao lado de `saúde` 1 é erro de digitação. Resolva com dicionário `{"saúde": "saude"}`.
-3. **Data sem `format` morre em silêncio.** O pandas deduz o formato pela primeira linha e transforma em `NaT` o `2026/08/04` do `OCB-032`. Com `format="ISO8601"` a contagem de `NaT` é zero.
-4. **`dayfirst=True` na coluna toda troca dia e mês.** Nesta base, 16 datas trocadas e 18 destruídas de 35, sem nenhum erro vermelho. Só afeta datas ISO com dia ≤ 12, então conferir 2 ou 3 linhas não adianta: confira `.min()` e `.max()`.
-5. **Mediana, não média.** No `agg` é `"median"`.
-
-### Código
+**a) Abrir numa variável nova.**
 
 ```python
 q2 = pd.read_csv("dados/publicacoes_brutas.csv")
-print(f"Linhas no bruto: {len(q2)}")
-
-# 1. duplicidade: olhar as cópias ANTES de remover
-repetidos = q2.loc[q2.duplicated(subset="id_publicacao", keep=False), "id_publicacao"].unique()
-for pid in repetidos:
-    bloco = q2[q2["id_publicacao"] == pid]
-    divergentes = [c for c in bloco.columns if bloco[c].nunique(dropna=False) > 1]
-    print(f"{pid}: aparece {len(bloco)}x | colunas que divergem: {divergentes}")
-duplicadas = q2.duplicated(subset="id_publicacao").sum()
-q2 = q2.drop_duplicates(subset="id_publicacao", keep="first")
-print(f"Duplicadas removidas: {duplicadas} -> restam {len(q2)}")
-
-# 2. tema
-q2["tema"] = q2["tema"].str.strip().str.lower()
-print(q2["tema"].value_counts(dropna=False))
-q2["tema"] = q2["tema"].replace({"saúde": "saude"})
-print("Temas:", sorted(q2["tema"].dropna().unique()))
-
-# 3. data em duas passadas
-texto_data = q2["data_publicacao"].copy()
-comeca_com_ano = q2["data_publicacao"].str[:4].str.isdigit().fillna(False)
-datas = pd.to_datetime(q2["data_publicacao"].where(comeca_com_ano), format="ISO8601", errors="coerce")
-resto = pd.to_datetime(q2["data_publicacao"].where(~comeca_com_ano), format="mixed", dayfirst=True, errors="coerce")
-q2["data_publicacao"] = datas.fillna(resto)
-print("Período:", q2["data_publicacao"].min().strftime("%d/%m/%Y"), "a", q2["data_publicacao"].max().strftime("%d/%m/%Y"))
-print("NaT:", q2["data_publicacao"].isna().sum())
-
-# prova de que as duas passadas eram necessárias
-ingenuo = pd.to_datetime(texto_data, dayfirst=True, errors="coerce")
-trocou = (q2["data_publicacao"] != ingenuo) & q2["data_publicacao"].notna() & ingenuo.notna()
-sumiu = q2["data_publicacao"].notna() & ingenuo.isna()
-print(f"dayfirst em tudo: {trocou.sum()} trocadas, {sumiu.sum()} viraram NaT")
-
-# 4. números: olhar dtype antes
-print(q2[["alcance", "compartilhamentos", "salvamentos"]].dtypes)
-for coluna in ["compartilhamentos", "salvamentos", "alcance"]:
-    q2[coluna] = pd.to_numeric(q2[coluna], errors="coerce")
-
-# 5. ausências e inválidos, contando cada filtro
-antes = len(q2)
-q2 = q2.dropna(subset=["tema"]);                                        print("sem tema:", antes - len(q2))
-parcial = len(q2); q2 = q2.dropna(subset=["alcance", "compartilhamentos", "salvamentos"]); print("sem campo da taxa:", parcial - len(q2))
-parcial = len(q2); q2 = q2[q2["alcance"] > 0];                          print("alcance zero:", parcial - len(q2))
-parcial = len(q2); q2 = q2[(q2["compartilhamentos"] >= 0) & (q2["salvamentos"] >= 0)]; print("negativos:", parcial - len(q2))
-print(f"Descartadas: {antes - len(q2)} -> restam {len(q2)}")
-
-# 6. taxa e tabela
-q2["taxa_utilidade_pct"] = (q2["compartilhamentos"] + q2["salvamentos"]) / q2["alcance"] * 100
-resumo_q2 = (q2.groupby("tema")
-               .agg(publicacoes=("id_publicacao", "count"),
-                    mediana_utilidade_pct=("taxa_utilidade_pct", "median"))
-               .reset_index().sort_values("mediana_utilidade_pct", ascending=False).round(2))
-resumo_q2
 ```
 
-### Resultado
+**b) Duplicidade por `id_publicacao`.** A mesma publicação duas vezes conta em dobro. "Por id" = `subset="id_publicacao"`. Sem "por id" no enunciado → `q2.drop_duplicates()`. `keep="first"` guarda a primeira (é o padrão).
 
-36 linhas → 1 duplicidade removida (35) → 2 descartadas (33): `OCB-021` sem alcance e `OCB-029` sem salvamentos. `OCB-025` (sem comentário) **fica**, porque comentário não entra na fórmula. Período 01/08/2026 a 28/08/2026, zero `NaT`.
+```python
+print("duplicadas:", q2.duplicated(subset="id_publicacao").sum())
+q2 = q2.drop_duplicates(subset="id_publicacao", keep="first")
+print("linhas depois:", len(q2))        # 36 -> 35
+```
 
-| tema | publicações | mediana da taxa de utilidade (%) |
-| --- | --- | --- |
-| saude | 11 | 1,18 |
-| cultura | 7 | 1,14 |
-| mobilidade | 8 | 1,13 |
-| trabalho | 7 | 0,86 |
+**c) Padronizar o tema.** Olhe com `value_counts()`: devia ter 4 temas e apareceram 7. `strip` tira o espaço invisível (`"mobilidade "`), `lower` tira a maiúscula (`Cultura`) e `replace` troca o que sobrou (`saúde` → `saude`; copie do `value_counts`).
 
-| Conferência | Resultado | O que escrever |
-| --- | --- | --- |
-| cópias do id repetido | idênticas nas 12 colunas | o `subset` é defensivo |
-| `value_counts` do tema | 5 grafias pra 4 temas | a equivalência era necessária |
-| `NaT` depois da conversão | 0 | a base não tem data impossível |
-| `dayfirst` sem `format` | 16 trocadas, 18 destruídas | as duas passadas não são exagero |
-| dtypes antes do `to_numeric` | `float64` e `int64` | as colunas **não** chegaram como texto |
-| filtros de tema, alcance zero, negativos | 0 linhas cada | **não** cite como tratamento feito |
+```python
+q2["tema"] = q2["tema"].str.strip().str.lower()
+q2["tema"] = q2["tema"].replace({"saúde": "saude"})
+print(q2["tema"].value_counts())        # só 4 temas
+```
 
-### Resposta
+**d) Converter a data.** Veio como texto (`dtype: object`) e em 3 formatos. `dayfirst=True` = "o dia vem primeiro" (05/08 = 5 de agosto). **Confira** com `min`/`max` (tem que dar 01/08 a 28/08/2026) e `NaT` (tem que dar 0). Se aparecer mês estranho, use o bloco de duas passadas do codigos.md.
 
-> Removi uma duplicidade por `id_publicacao`, mantendo a primeira ocorrência, e conferi antes que as duas cópias de `OCB-018` eram idênticas em todas as colunas, o que torna a remoção segura; usei `subset` mesmo assim porque um `drop_duplicates()` sem ele deixaria a repetição passar caso houvesse qualquer divergência. Rodei `value_counts` em `tema` antes de decidir qualquer coisa e encontrei cinco grafias para quatro categorias, então apliquei `strip` e `lower` e, como isso não une `saude` e `saúde`, acrescentei uma tabela de equivalência manual para as duas contarem como um tema só. Converti `data_publicacao` em duas passadas, com `format="ISO8601"` nas linhas de ano à frente e `dayfirst=True` no restante, porque a coluna mistura três formatos e um `dayfirst=True` aplicado a tudo sem `format` trocaria dia por mês em 16 datas e destruiria outras 18, sem gerar erro; conferi pelo intervalo, que ficou entre 01/08/2026 e 28/08/2026, sem nenhuma data perdida. Conferi os dtypes de `alcance`, `compartilhamentos` e `salvamentos` e os três já chegaram numéricos, então mantive o `pd.to_numeric` com `errors="coerce"` apenas como salvaguarda, e descartei as duas únicas linhas problemáticas, `OCB-021` sem `alcance` e `OCB-029` sem `salvamentos`, já que sem esses campos a taxa não existe e preencher seria inventar dado.
+```python
+q2["data_publicacao"] = pd.to_datetime(q2["data_publicacao"], format="mixed", dayfirst=True, errors="coerce")
+print(q2["data_publicacao"].min(), q2["data_publicacao"].max())
+print("NaT:", q2["data_publicacao"].isna().sum())
+```
 
-O professor quer **uma decisão explícita com motivo** pra cada problema, sempre na forma "fiz X porque Y". "Limpei os dados e tratei os ausentes" não dá ponto. E não descreva tratamento que não aconteceu: ele tem a base na mão.
+**e) Colunas numéricas.** As "do cálculo" são as da fórmula. Olhe o tipo: já eram número (`float64`/`int64`), então **não precisou converter**. Se fosse `object`: `pd.to_numeric(q2[c], errors="coerce")`.
 
-## Questão 3: escolha de tema para divulgação
+```python
+print(q2[["alcance", "compartilhamentos", "salvamentos"]].dtypes)
+```
 
-### Enunciado
+**f) Ausentes e inválidos.** Sem `alcance` ou `salvamentos` não dá pra calcular a taxa → descarta (inventar seria criar dado). Sem `comentarios` **fica**, porque não entra na fórmula. Depois olhe o menor `alcance`: é o número **de baixo da divisão** e não pode ser zero. Deu 765, então não precisou filtrar. *Se desse 0:* `q2 = q2[q2["alcance"] > 0]`.
 
-A equipe trabalha com quatro temas e só consegue dar destaque principal a um. A escolha deve priorizar conteúdo que as pessoas tendem a **salvar ou compartilhar**. Use **somente** `dados/publicacoes_analise.csv`. Crie `taxa_utilidade_pct` com a mesma fórmula da Q2. Depois: (1) monte uma tabela com a mediana da taxa por tema; (2) faça um gráfico de barras comparando os quatro temas, com título que comunique a pergunta, eixos nomeados e "Fonte: dados sintéticos do Festival ViraBairro (2026)" no próprio gráfico. Na Markdown, uma recomendação de **3 a 5 frases**: indique um tema, explique o que a mediana representa e apresente uma limitação. Não afirme causalidade.
+```python
+q2 = q2.dropna(subset=["alcance", "compartilhamentos", "salvamentos"])
+print("linhas agora:", len(q2))         # 35 -> 33
+print(q2["alcance"].min())              # 765
+```
 
-### Armadilhas
+**g) Criar a taxa.** É a fórmula com os mesmos símbolos (`+ / *`). O nome da tabela vai antes de cada coluna.
 
-**Utilidade não é engajamento:** a fórmula só usa compartilhamento e salvamento. E **olhe a altura das barras antes de recomendar**: se estiverem praticamente iguais, apontar a mais alta é resposta fraca.
+```python
+q2["taxa_utilidade_pct"] = (q2["compartilhamentos"] + q2["salvamentos"]) / q2["alcance"] * 100
+```
 
-### Código
+**h) Tabela por tema.** "Por tema" = `groupby("tema")`. Duas contas = `agg` (`count` = quantidade, `median` = mediana). "Da maior para a menor" = `ascending=False`.
+
+```python
+tabela = q2.groupby("tema").agg(
+    publicacoes=("id_publicacao", "count"),
+    mediana_utilidade_pct=("taxa_utilidade_pct", "median"),
+)
+tabela = tabela.sort_values("mediana_utilidade_pct", ascending=False)
+print(tabela)      # saude 11 / 1,18 | cultura 7 / 1,14 | mobilidade 8 / 1,13 | trabalho 7 / 0,86
+```
+
+**Tudo junto:**
+
+```python
+q2 = pd.read_csv("dados/publicacoes_brutas.csv")
+
+print("duplicadas:", q2.duplicated(subset="id_publicacao").sum())
+q2 = q2.drop_duplicates(subset="id_publicacao", keep="first")
+print("linhas depois:", len(q2))
+
+q2["tema"] = q2["tema"].str.strip().str.lower()
+q2["tema"] = q2["tema"].replace({"saúde": "saude"})
+print(q2["tema"].value_counts())
+
+q2["data_publicacao"] = pd.to_datetime(q2["data_publicacao"], format="mixed", dayfirst=True, errors="coerce")
+print(q2["data_publicacao"].min(), q2["data_publicacao"].max())
+print("NaT:", q2["data_publicacao"].isna().sum())
+
+print(q2[["alcance", "compartilhamentos", "salvamentos"]].dtypes)
+
+q2 = q2.dropna(subset=["alcance", "compartilhamentos", "salvamentos"])
+print("linhas agora:", len(q2))
+print(q2["alcance"].min())
+
+q2["taxa_utilidade_pct"] = (q2["compartilhamentos"] + q2["salvamentos"]) / q2["alcance"] * 100
+
+tabela = q2.groupby("tema").agg(
+    publicacoes=("id_publicacao", "count"),
+    mediana_utilidade_pct=("taxa_utilidade_pct", "median"),
+)
+tabela = tabela.sort_values("mediana_utilidade_pct", ascending=False)
+print(tabela)
+```
+
+**Resposta (até 4 frases, sempre "fiz X porque Y"):**
+
+> Removi 1 duplicidade por `id_publicacao`, mantendo a primeira ocorrência, porque a mesma publicação contada duas vezes distorceria a tabela, e usei `subset` porque o enunciado pediu duplicidade pelo id. Padronizei `tema` com `strip` e `lower`, que resolveram espaço sobrando e letra maiúscula, e unifiquei `saúde` com `saude` por uma tabela de equivalência, porque o acento fazia o mesmo tema contar como dois; conferi com `value_counts` que ficaram só os 4 temas. Converti `data_publicacao` de texto para data com `dayfirst=True`, porque a coluna misturava formatos com o ano e com o dia na frente, e conferi que todas as datas ficaram entre 01/08/2026 e 28/08/2026, sem nenhuma perdida; as colunas da fórmula já chegaram como número, então não precisaram de conversão. Descartei as 2 publicações sem `alcance` ou sem `salvamentos`, porque sem esses valores a taxa não pode ser calculada e preencher seria inventar dado, e mantive a que só não tinha `comentarios`, porque essa coluna não entra na fórmula.
+
+## Questão 3: tabela por tema e barras
+
+**Tema:** agrupar por uma coluna + gráfico de barras. **Arquivo:** `publicacoes_analise.csv` (já limpa). É o final da Q2 na base limpa, com um gráfico.
+
+**a) Abrir e criar a taxa** (mesma fórmula da Q2; a base limpa não precisa de limpeza).
 
 ```python
 q3 = pd.read_csv("dados/publicacoes_analise.csv")
 q3["taxa_utilidade_pct"] = (q3["compartilhamentos"] + q3["salvamentos"]) / q3["alcance"] * 100
-tabela_q3 = (q3.groupby("tema")
-               .agg(publicacoes=("id_publicacao", "count"),
-                    mediana_utilidade_pct=("taxa_utilidade_pct", "median"))
-               .reset_index().sort_values("mediana_utilidade_pct", ascending=False).round(2))
-print(tabela_q3.to_string(index=False))
+```
 
+**b) Tabela da mediana por tema** (igual à Q2).
+
+```python
+tabela_q3 = q3.groupby("tema").agg(
+    publicacoes=("id_publicacao", "count"),
+    mediana_utilidade_pct=("taxa_utilidade_pct", "median"),
+)
+tabela_q3 = tabela_q3.sort_values("mediana_utilidade_pct", ascending=False)
+print(tabela_q3)
+```
+
+**c) Gráfico de barras.** Esqueleto de todo gráfico: criar (`subplots`) → desenhar (`bar`) → textos (título, eixos, fonte) → mostrar. `tabela_q3.index` são os temas (depois do `groupby`, o tema vira o índice).
+
+```python
 fig, ax = plt.subplots(figsize=(8, 5))
-ax.bar(tabela_q3["tema"], tabela_q3["mediana_utilidade_pct"], color="#3b6ea5")
+ax.bar(tabela_q3.index, tabela_q3["mediana_utilidade_pct"])
 ax.set_title("Qual tema as pessoas mais salvam e compartilham?")
 ax.set_xlabel("Tema da publicação")
 ax.set_ylabel("Mediana da taxa de utilidade (%)")
@@ -217,103 +207,100 @@ fig.tight_layout()
 plt.show()
 ```
 
-### Resultado
+**Tudo junto:** a, b e c em sequência, na mesma célula.
 
-| tema | publicações | mediana (%) |
-| --- | --- | --- |
-| mobilidade | 33 | 1,15 |
-| cultura | 26 | 1,13 |
-| saude | 35 | 1,10 |
-| trabalho | 26 | 0,96 |
+**Resultado:** mobilidade 1,15 (33) | cultura 1,13 (26) | saude 1,10 (35) | trabalho 0,96 (26). As três primeiras estão **empatadas**.
 
-As três primeiras barras são praticamente iguais (0,05 ponto entre mobilidade e saúde). A única separação segura é que **trabalho fica atrás**. Repare: na Q2, com a base bruta, quem liderava era saúde. Bases diferentes, vencedores diferentes, porque as diferenças são pequenas.
+**Resposta (3 a 5 frases):**
 
-### Resposta
-
-> Entre os quatro temas, mobilidade tem a maior mediana de taxa de utilidade, com 1,15%, seguida de perto por cultura, com 1,13%, e saúde, com 1,10%, enquanto trabalho fica isolado abaixo, com 0,96%. A mediana é o valor do meio da distribuição, metade das publicações do tema acima e metade abaixo, o que a torna menos sensível do que a média a uma peça isolada de desempenho atípico. A leitura honesta desses números é que os três primeiros temas estão praticamente empatados: a diferença entre mobilidade e saúde é de apenas 0,05 ponto percentual, calculada sobre 26 a 35 publicações por tema, o que é pequeno demais para sustentar uma escolha. O que os dados permitem afirmar com alguma segurança é que trabalho é o tema que menos gera salvamento e compartilhamento, e por isso a decisão defensável é descartar trabalho e escolher entre os outros três por critério editorial, não por esta métrica. Como limitação, os temas não foram publicados nos mesmos formatos nem nos mesmos horários, então a diferença entre eles pode estar refletindo essas outras escolhas da equipe, e em qualquer caso isto é associação observada, não evidência de que o tema cause mais compartilhamento.
+> Entre os quatro temas, mobilidade tem a maior mediana de taxa de utilidade, com 1,15%, seguida de perto por cultura, com 1,13%, e saúde, com 1,10%, enquanto trabalho fica abaixo, com 0,96%. A mediana é o valor do meio, com metade das publicações do tema acima e metade abaixo, e por isso é menos afetada do que a média por uma peça fora do padrão. Os três primeiros temas estão praticamente empatados, com diferenças de até 0,05 ponto sobre 26 a 35 publicações por tema, o que é pouco para sustentar uma escolha. Por isso, a decisão defensável é descartar trabalho e escolher entre os outros três por critério editorial. Como limitação, os temas não foram publicados nos mesmos formatos e horários, então isto é associação observada, não prova de que o tema cause mais compartilhamento.
 
 ## Questão 4: acompanhamento diário
 
-### Enunciado
+**Tema:** data, tabela por dia, gráfico de linha, filtro com duas condições, top 5. **Arquivo:** `publicacoes_analise.csv`.
 
-Use **somente** `dados/publicacoes_analise.csv`, em uma nova variável. (1) Converta `data_publicacao` para data/hora e crie `dia_publicacao`, só com a data. (2) Crie uma tabela por `dia_publicacao` com a quantidade de publicações, a média de `taxa_engajamento_pct` e o alcance total, em ordem cronológica. (3) Faça um gráfico de linhas da taxa média por dia, com título, eixos nomeados e a fonte no gráfico. (4) Crie um recorte só de `reel` publicados a partir das 18h e mostre as cinco com maior `taxa_engajamento_pct`, com `id_publicacao`, `dia_publicacao`, `hora`, `tema` e `taxa_engajamento_pct`. Na resposta, descreva a variação diária **sem afirmar tendência de longo prazo** e explique por que o recorte de reels noturnos não prova que horário ou formato causam engajamento.
-
-### Armadilhas
-
-Filtro com duas condições: parênteses em cada uma e `&`, nunca `and`. Três agregações no mesmo `agg`: `count`, `mean`, `sum`.
-
-### Código
+**a) Converter a data e criar `dia_publicacao`.** Aqui as datas vêm num formato só, então basta o `to_datetime` simples. `.dt.date` pega só o dia (sem a hora), pra agrupar por dia.
 
 ```python
 q4 = pd.read_csv("dados/publicacoes_analise.csv")
 q4["data_publicacao"] = pd.to_datetime(q4["data_publicacao"])
 q4["dia_publicacao"] = q4["data_publicacao"].dt.date
+```
 
-tabela_diaria = (q4.groupby("dia_publicacao")
-                   .agg(publicacoes=("id_publicacao", "count"),
-                        media_engajamento_pct=("taxa_engajamento_pct", "mean"),
-                        alcance_total=("alcance", "sum"))
-                   .reset_index().sort_values("dia_publicacao").round(2))
-print(f"Dias com publicação: {len(tabela_diaria)}")
+**b) Tabela por dia.** Três contas: `count` (quantidade), `mean` (média), `sum` (total). "Cronológica" = ordenar pelo dia, do mais antigo pro mais novo (o padrão, sem `ascending=False`).
 
+```python
+diaria = q4.groupby("dia_publicacao").agg(
+    publicacoes=("id_publicacao", "count"),
+    media_engajamento_pct=("taxa_engajamento_pct", "mean"),
+    alcance_total=("alcance", "sum"),
+)
+diaria = diaria.sort_values("dia_publicacao")
+print(diaria)
+print("dias:", len(diaria))     # 56
+```
+
+**c) Gráfico de linhas.** Linha porque o eixo de baixo é tempo. `diaria.index` são os dias. `rotation=45` inclina as datas.
+
+```python
 fig, ax = plt.subplots(figsize=(11, 4.5))
-ax.plot(tabela_diaria["dia_publicacao"], tabela_diaria["media_engajamento_pct"], marker="o", markersize=3, color="#3b6ea5")
-ax.set_title("Como a taxa média de engajamento variou dia a dia na campanha")
+ax.plot(diaria.index, diaria["media_engajamento_pct"], marker="o")
+ax.set_title("Como a taxa média de engajamento variou dia a dia")
 ax.set_xlabel("Dia da publicação")
 ax.set_ylabel("Taxa média de engajamento (%)")
 ax.tick_params(axis="x", rotation=45)
 fig.text(0.01, -0.02, "Fonte: dados sintéticos do Festival ViraBairro (2026)", fontsize=8, color="gray")
 fig.tight_layout()
 plt.show()
-
-reels_noturnos = q4[(q4["formato"] == "reel") & (q4["hora"] >= 18)]
-print(f"Reels a partir das 18h: {len(reels_noturnos)}")
-top5_reels = reels_noturnos.nlargest(5, "taxa_engajamento_pct")[
-    ["id_publicacao", "dia_publicacao", "hora", "tema", "taxa_engajamento_pct"]]
-top5_reels
 ```
 
-### Resultado
+**d) Recorte + top 5.** `==` pergunta "é igual?"; `>=` porque "a partir das 18h" inclui as 18h; `&` = "e"; cada condição entre parênteses. `nlargest(5, coluna)` pega os 5 maiores.
 
-56 dias (01/08 a 28/09/2026), 120 publicações: cerca de 2 por dia. 21 reels a partir das 18h.
+```python
+recorte = q4[(q4["formato"] == "reel") & (q4["hora"] >= 18)]
+print("reels a partir das 18h:", len(recorte))       # 21
+top5 = recorte.nlargest(5, "taxa_engajamento_pct")
+print(top5[["id_publicacao", "dia_publicacao", "hora", "tema", "taxa_engajamento_pct"]])
+```
 
-| id | dia | hora | tema | taxa (%) |
-| --- | --- | --- | --- | --- |
-| OCB-003 | 2026-08-03 | 22 | cultura | 6,82 |
-| OCB-107 | 2026-09-23 | 18 | mobilidade | 6,80 |
-| OCB-087 | 2026-09-03 | 22 | cultura | 6,15 |
-| OCB-097 | 2026-09-13 | 20 | mobilidade | 6,08 |
-| OCB-027 | 2026-08-27 | 20 | mobilidade | 5,64 |
+**Tudo junto:** a, b, c e d em sequência, na mesma célula. 1º lugar: OCB-003 (cultura, 22h, 6,82%).
 
-Média de 2 ou 3 publicações não é medida estável do dia: o serrilhado do gráfico é em boa parte aritmética de amostra pequena.
+**Resposta:**
 
-### Resposta
+> A taxa média de engajamento oscila de um dia para o outro ao longo da campanha, alternando picos e quedas sem uma direção estável de subida ou descida. Boa parte dessa oscilação vem do tamanho da amostra: são 120 publicações em 56 dias, cerca de duas por dia, e com tão poucas uma única peça acima ou abaixo do padrão desloca a média do dia inteiro, por isso o gráfico não permite afirmar tendência, só descrever a variação. O recorte dos cinco reels noturnos com maior taxa também não prova que horário ou formato causem engajamento, porque ele seleciona as melhores de um grupo de apenas 21 publicações já filtrado por formato e horário. Para sustentar essa conclusão, seria preciso comparar os reels noturnos com reels de outros horários e com outros formatos publicados à noite, e essa comparação não foi feita.
 
-> A taxa média de engajamento oscila de um dia para o outro ao longo de quase dois meses de campanha, alternando picos e quedas sem uma direção estável de subida ou descida. Boa parte dessa oscilação é aritmética e não comportamento do público: a base tem 120 publicações distribuídas em 56 dias, ou seja, duas a três por dia, e com esse tamanho uma única peça acima ou abaixo do padrão desloca a média do dia inteiro. Por isso o gráfico não autoriza nenhuma afirmação sobre tendência de longo prazo, apenas sobre variação diária. O recorte dos cinco reels noturnos com maior taxa também não prova que horário ou formato causem engajamento, porque ele seleciona as cinco melhores de um grupo de apenas 21 publicações que já havia sido filtrado justamente por formato e horário: os casos foram escolhidos pelo resultado que se quer explicar. Para sustentar que reel noturno funciona seria preciso comparar reels noturnos com reels publicados em outros horários e com outros formatos no mesmo horário, mantendo o resto parecido, e essa comparação não foi feita.
+## Questão 5: tema e formato juntos
 
-## Questão 5: tema e formato das publicações
+**Tema:** agrupar por **duas** colunas + gráfico de barras horizontal. **Arquivo:** `publicacoes_analise.csv`. É a Q3 com duas colunas.
 
-### Enunciado
-
-A equipe quer entender como **tema** e **formato** aparecem juntos; analisar cada variável separadamente pode ocultar diferenças. Use **somente** `dados/publicacoes_analise.csv`. Crie uma tabela com uma linha por combinação de `tema` e `formato`, com (1) número de publicações e (2) mediana de `taxa_engajamento_pct`, ordenada da maior para a menor mediana. Faça um gráfico de barras comparando as combinações, com título informativo, eixos nomeados e a fonte no gráfico. Na Markdown, **4 a 6 frases**: destaque uma combinação que mereça ser testada, explique por que comparar duas variáveis é diferente de analisar uma e registre uma limitação.
-
-### Armadilhas
-
-`groupby` com **lista** de duas colunas. São 12 combinações: use barra horizontal (`barh`) ou gire os rótulos. A coluna de contagem diz em qual linha confiar.
-
-### Código
+**a) Abrir.** A `taxa_engajamento_pct` já vem pronta na base, então não precisa criar.
 
 ```python
 q5 = pd.read_csv("dados/publicacoes_analise.csv")
-tabela_q5 = (q5.groupby(["tema", "formato"])
-               .agg(publicacoes=("id_publicacao", "count"),
-                    mediana_engajamento_pct=("taxa_engajamento_pct", "median"))
-               .reset_index().sort_values("mediana_engajamento_pct", ascending=False).round(2))
-print(tabela_q5.to_string(index=False))
+```
 
+**b) Tabela por tema e formato.** Pra agrupar por duas colunas, passe uma **lista** no `groupby`. Cada linha da tabela vira uma combinação (cultura + reel, cultura + imagem...). São 4 temas × 3 formatos = 12 linhas. O `reset_index()` devolve tema e formato como colunas normais, pra dar pra juntar os dois no passo c.
+
+```python
+tabela_q5 = q5.groupby(["tema", "formato"]).agg(
+    publicacoes=("id_publicacao", "count"),
+    mediana_engajamento_pct=("taxa_engajamento_pct", "median"),
+).reset_index()
+tabela_q5 = tabela_q5.sort_values("mediana_engajamento_pct", ascending=False)
+print(tabela_q5)
+```
+
+**c) Um nome pra cada combinação.** O gráfico precisa de um rótulo só por barra, então juntamos os dois textos com `+`.
+
+```python
 tabela_q5["combinacao"] = tabela_q5["tema"] + " / " + tabela_q5["formato"]
+```
+
+**d) Gráfico de barras horizontal.** Horizontal (`barh`) porque são 12 barras com nome comprido. No `barh` o **valor fica no eixo X** e os nomes no eixo Y. `[::-1]` põe a maior barra em cima.
+
+```python
 fig, ax = plt.subplots(figsize=(9, 7))
-ax.barh(tabela_q5["combinacao"][::-1], tabela_q5["mediana_engajamento_pct"][::-1], color="#3b6ea5")
+ax.barh(tabela_q5["combinacao"][::-1], tabela_q5["mediana_engajamento_pct"][::-1])
 ax.set_title("Quais combinações de tema e formato engajam mais?")
 ax.set_xlabel("Mediana da taxa de engajamento (%)")
 ax.set_ylabel("Tema / formato")
@@ -322,76 +309,77 @@ fig.tight_layout()
 plt.show()
 ```
 
-### Resultado
+**Tudo junto:**
 
-| tema | formato | publicações | mediana (%) |
-| --- | --- | --- | --- |
-| mobilidade | reel | 11 | 5,10 |
-| cultura | reel | 8 | 4,82 |
-| saude | reel | 12 | 4,67 |
-| cultura | carrossel | 10 | 4,54 |
-| mobilidade | carrossel | 10 | 4,53 |
-| cultura | imagem | 8 | 4,39 |
-| saude | carrossel | 11 | 4,29 |
-| trabalho | reel | 8 | 4,27 |
-| trabalho | carrossel | 10 | 3,73 |
-| mobilidade | imagem | 12 | 3,60 |
-| saude | imagem | 12 | 3,38 |
-| trabalho | imagem | 8 | 3,04 |
+```python
+q5 = pd.read_csv("dados/publicacoes_analise.csv")
 
-O achado real aparece quando você reagrupa por tema: **em todos os quatro temas a ordem é reel > carrossel > imagem**. E o tema que lidera muda com o formato: mobilidade entre os reels, cultura entre carrosséis e imagens.
+tabela_q5 = q5.groupby(["tema", "formato"]).agg(
+    publicacoes=("id_publicacao", "count"),
+    mediana_engajamento_pct=("taxa_engajamento_pct", "median"),
+).reset_index()
+tabela_q5 = tabela_q5.sort_values("mediana_engajamento_pct", ascending=False)
+print(tabela_q5)
 
-### Resposta
+tabela_q5["combinacao"] = tabela_q5["tema"] + " / " + tabela_q5["formato"]
 
-> A combinação de mobilidade em reel aparece no topo da tabela, com mediana de 5,10%, e é a candidata natural a ser testada, com a ressalva de que ela está a 0,28 ponto de cultura em reel e a 0,43 de saúde em reel, diferenças pequenas para combinações que têm entre 8 e 12 publicações cada. O cruzamento revela um padrão que a análise de uma variável isolada esconderia: dentro de cada um dos quatro temas, sem exceção, a ordem é reel, depois carrossel, depois imagem, o que indica que o formato ordena o resultado de forma bem mais consistente do que o tema. Ao mesmo tempo, o tema que lidera muda conforme o formato, já que mobilidade é o primeiro entre os reels enquanto cultura é o primeiro entre carrosséis e imagens. É por isso que comparar duas variáveis juntas é diferente de analisar cada uma isoladamente: olhando só o tema, a vantagem de mobilidade poderia vir apenas de ela concentrar mais reels, e olhando só o formato, perderíamos essa inversão de liderança entre os temas. Como limitação, nenhuma célula da tabela passa de 12 publicações, e uma mediana calculada sobre esse número é instável o bastante para trocar de posição no ranking por causa de uma única peça atípica. Pelo que a base sustenta, a recomendação mais segura é priorizar reel como formato, decisão que se repete em todos os temas, e tratar a escolha do tema como decisão editorial.
+fig, ax = plt.subplots(figsize=(9, 7))
+ax.barh(tabela_q5["combinacao"][::-1], tabela_q5["mediana_engajamento_pct"][::-1])
+ax.set_title("Quais combinações de tema e formato engajam mais?")
+ax.set_xlabel("Mediana da taxa de engajamento (%)")
+ax.set_ylabel("Tema / formato")
+fig.text(0.01, -0.02, "Fonte: dados sintéticos do Festival ViraBairro (2026)", fontsize=8, color="gray")
+fig.tight_layout()
+plt.show()
+```
 
-## Questão 6: variáveis mais usadas pela árvore
+**Resultado:** o topo é mobilidade / reel (5,10; 11 publicações), depois cultura / reel (4,82) e saude / reel (4,67). O último é trabalho / imagem (3,04). **Achado:** em todos os 4 temas a ordem é reel > carrossel > imagem.
 
-### Enunciado
+**Resposta (4 a 6 frases):**
 
-Use **somente** `dados/publicacoes_analise.csv`, de modo independente. (1) Crie `mereceu_divulgacao_adicional` pelo percentil 75 de `taxa_engajamento_pct`. (2) Use apenas as características disponíveis antes da publicação listadas na Q8 e transforme categorias em números. (3) Reserve 75% para treino e 25% para teste, com `random_state=42` e preservando a proporção do alvo. Ajuste uma árvore de classificação com profundidade máxima 4, `random_state=42` e pesos balanceados. (4) Produza uma tabela ordenada e um gráfico de barras **horizontal** com as cinco características de maior importância, com título e eixos nomeados. Na resposta, explique por que importância alta não prova causalidade e descreva uma mudança na base que poderia alterar o ranking.
+> A combinação de mobilidade em reel aparece no topo, com mediana de 5,10%, e é a candidata natural a ser testada, mas está a apenas 0,28 ponto de cultura em reel e a 0,43 de saúde em reel, com 8 a 12 publicações por combinação. O cruzamento mostra um padrão que uma variável sozinha esconderia: dentro de cada um dos quatro temas, a ordem é sempre reel, depois carrossel, depois imagem, o que indica que o formato ordena o resultado de forma mais consistente que o tema. Comparar duas variáveis juntas é diferente de analisar uma só porque, olhando só o tema, a vantagem de mobilidade poderia vir apenas de ela ter mais reels. Como limitação, nenhuma combinação passa de 12 publicações, e uma mediana com tão poucos casos pode mudar de posição por causa de uma única peça. A recomendação mais segura é priorizar o formato reel e tratar a escolha do tema como decisão editorial, lembrando que isto é associação observada, não causa.
 
-### Traduzindo o enunciado
+## Questão 6: importâncias da árvore
 
-| Enunciado | Código |
-| --- | --- |
-| percentil 75 | `.quantile(0.75)` |
-| 75% treino, 25% teste | `test_size=0.25` |
-| preservando a proporção do alvo | `stratify=y` |
-| profundidade máxima 4 | `max_depth=4` |
-| pesos balanceados | `class_weight="balanced"` |
-| barras horizontal | `ax.barh(...)` |
+**Tema:** treinar uma árvore de classificação e ver o que ela mais usou. **Arquivo:** `publicacoes_analise.csv`. É o começo da Q8 + importâncias.
 
-**Armadilha nº 1 da prova:** `tema` e `formato` são texto, então sem `pd.get_dummies` dá `could not convert string to float`. **Armadilha nº 2:** vazamento. Alcance, interações e a própria taxa só existem depois de publicar, e `id_publicacao` é só um código.
-
-### Código
+**a) Criar o alvo.** 1 se a taxa está acima do percentil 75, 0 no resto.
 
 ```python
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import mean_absolute_error, r2_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.tree import DecisionTreeClassifier
 
 q6 = pd.read_csv("dados/publicacoes_analise.csv")
 corte_p75 = q6["taxa_engajamento_pct"].quantile(0.75)
 q6["mereceu_divulgacao_adicional"] = (q6["taxa_engajamento_pct"] > corte_p75).astype(int)
+```
 
+**b) X e y.** Só as características de antes de publicar (nada de alcance, interações ou taxa: seria vazamento). `get_dummies` transforma tema e formato (texto) em colunas 0/1.
+
+```python
 CARACTERISTICAS = ["tema", "formato", "seguidores_autor", "videos_autor", "tamanho_legenda",
                    "n_emojis", "n_hashtags", "hora", "dia_semana", "duracao_segundos"]
 X = pd.get_dummies(q6[CARACTERISTICAS], columns=["tema", "formato"])
 y = q6["mereceu_divulgacao_adicional"]
-X_treino, X_teste, y_treino, y_teste = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
+```
 
-arvore_q6 = DecisionTreeClassifier(max_depth=4, random_state=42, class_weight="balanced")
-arvore_q6.fit(X_treino, y_treino)
-importancias = (pd.DataFrame({"caracteristica": X.columns, "importancia": arvore_q6.feature_importances_})
-                  .sort_values("importancia", ascending=False).reset_index(drop=True))
-top5_importancias = importancias.head(5)
-print(top5_importancias.to_string(index=False))
+**c) Treino e teste + árvore.** `test_size=0.25` = 25% pra teste; `stratify=y` = "preservando a proporção do alvo"; `max_depth=4` = "profundidade máxima 4"; `class_weight="balanced"` = "pesos balanceados". `.fit` treina.
+
+```python
+X_treino, X_teste, y_treino, y_teste = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
+arvore = DecisionTreeClassifier(max_depth=4, random_state=42, class_weight="balanced")
+arvore.fit(X_treino, y_treino)
+```
+
+**d) Top 5 importâncias + barras horizontais.**
+
+```python
+importancias = pd.DataFrame({"caracteristica": X.columns, "importancia": arvore.feature_importances_})
+top5 = importancias.sort_values("importancia", ascending=False).head(5)
+print(top5)
 
 fig, ax = plt.subplots(figsize=(8, 4.5))
-ax.barh(top5_importancias["caracteristica"][::-1], top5_importancias["importancia"][::-1], color="#3b6ea5")
+ax.barh(top5["caracteristica"][::-1], top5["importancia"][::-1])
 ax.set_title("O que a árvore mais usou para separar as publicações de destaque")
 ax.set_xlabel("Importância na árvore (0 a 1)")
 ax.set_ylabel("Característica")
@@ -399,122 +387,91 @@ fig.tight_layout()
 plt.show()
 ```
 
-### Resultado
+**Tudo junto:** a, b, c e d em sequência. Resultado: formato_reel 0,28 | dia_semana 0,14 | n_hashtags 0,14 | tema_cultura 0,10 | videos_autor 0,09.
 
-Corte 4,89%: 30 de 120 marcadas com 1 (25%). `X` com 15 colunas. Treino 90 (23 positivas), teste 30.
+**Resposta:**
 
-| característica | importância |
-| --- | --- |
-| formato\_reel | 0,276 |
-| dia\_semana | 0,139 |
-| n\_hashtags | 0,139 |
-| tema\_cultura | 0,100 |
-| videos\_autor | 0,095 |
+> A árvore usou principalmente `formato_reel`, com importância 0,28, seguido de `dia_semana` e `n_hashtags`, empatados em 0,14, depois `tema_cultura` com 0,10 e `videos_autor` com 0,09. Importância alta significa apenas que a característica foi útil para a árvore separar as publicações que ela viu no treino, não que ela cause o desempenho: os reels desta campanha podem concentrar certos temas, horários e durações, e a árvore aproveita essa associação sem separar o que vem de quê. O ranking também é instável porque a árvore foi treinada com apenas 90 publicações. Trocar o `random_state`, acrescentar algumas publicações ou distribuir formatos e horários de forma mais equilibrada poderia fazer `dia_semana` e `n_hashtags`, que hoje empatam, trocarem de posição.
 
-`formato_reel` no topo bate com a Q5. `dia_semana` e `n_hashtags` empatam: com esse tamanho, trocar o `random_state` provavelmente inverteria os dois.
+## Questão 7: regressão
 
-### Resposta
+**Tema:** estimar um número (taxa) com regressão linear e árvore. **Arquivo:** `publicacoes_analise.csv`.
 
-> A árvore usou principalmente `formato_reel`, com importância 0,28, seguido de `dia_semana` e `n_hashtags`, empatados em 0,14, depois `tema_cultura` com 0,10 e `videos_autor` com 0,09. Importância alta significa apenas que a característica foi útil para dividir os dados que a árvore viu no treino, não que ela cause o desempenho: `formato_reel` pode estar no topo porque os reels desta campanha concentram determinados temas, horários e durações, e a árvore aproveita essa associação sem conseguir separar o que vem de quê. A limitação decisiva aqui é o tamanho da base: a árvore foi treinada com 90 publicações, das quais apenas 23 pertencem à classe positiva, e com esse número o ranking é instável. Uma mudança pequena já o alteraria: trocar o `random_state` do `train_test_split`, acrescentar uma dezena de publicações, ou passar a distribuir formatos e horários de maneira mais equilibrada faria `dia_semana` e `n_hashtags`, que hoje empatam na segunda casa decimal, trocarem de posição sem que nada tenha mudado no fenômeno real.
-
-## Questão 7: estimativa de engajamento
-
-### Enunciado
-
-A equipe precisa estimar, antes da publicação, a `taxa_engajamento_pct` esperada de uma nova peça. Use **somente** `dados/publicacoes_analise.csv`. (1) Na resposta, indique o tipo de aprendizado adequado (regressão, classificação ou clusterização) e explique por que o alvo exige essa escolha. (2) Use como características somente `tema`, `formato`, `seguidores_autor`, `videos_autor`, `tamanho_legenda`, `n_emojis`, `n_hashtags`, `hora`, `dia_semana` e `duracao_segundos`, transformando categorias em números. Não use identificador, alcance, interações nem variáveis calculadas a partir da taxa. (3) 75% treino e 25% teste, `random_state=42`. (4) Ajuste uma regressão linear e uma árvore de regressão com profundidade máxima 4 e compare numa tabela de MAE e R². (5) Para o modelo com menor MAE, faça um gráfico de dispersão entre valores reais e previstos, com uma linha de referência onde previsão e valor real seriam iguais, título e eixos nomeados. Na resposta, explique o que o MAE mede, indique o modelo escolhido e registre uma limitação que impeça interpretar a previsão como causal.
-
-### Armadilhas
-
-Alvo é número contínuo, então **regressão**. Aqui **não** tem `stratify`: copiar o split da Q6 quebra. O modelo bobo (média do treino) não foi pedido, mas custa duas linhas e dá a referência.
-
-### Código
+**a) X e y.** O alvo é a taxa, um **número** → regressão. **Sem** `stratify` (ele só existe em classificação).
 
 ```python
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.metrics import mean_absolute_error, r2_score
+
 q7 = pd.read_csv("dados/publicacoes_analise.csv")
+CARACTERISTICAS = ["tema", "formato", "seguidores_autor", "videos_autor", "tamanho_legenda",
+                   "n_emojis", "n_hashtags", "hora", "dia_semana", "duracao_segundos"]
 X = pd.get_dummies(q7[CARACTERISTICAS], columns=["tema", "formato"])
 y = q7["taxa_engajamento_pct"]
-X_treino, X_teste, y_treino, y_teste = train_test_split(X, y, test_size=0.25, random_state=42)   # sem stratify
+X_treino, X_teste, y_treino, y_teste = train_test_split(X, y, test_size=0.25, random_state=42)
+```
 
-modelo_linear = LinearRegression().fit(X_treino, y_treino)
-previsao_linear = modelo_linear.predict(X_teste)
-modelo_arvore = DecisionTreeRegressor(max_depth=4, random_state=42).fit(X_treino, y_treino)
-previsao_arvore = modelo_arvore.predict(X_teste)
-previsao_boba = np.full(len(y_teste), y_treino.mean())
+**b) Dois modelos + tabela de MAE e R².** MAE = erro médio na unidade da taxa (menor é melhor). R² = quanto o modelo explica (1 perfeito, 0 = chutar a média). O "bobo" chuta sempre a média: é a referência.
 
-comparacao_q7 = pd.DataFrame({
-    "modelo": ["modelo bobo (média)", "regressão linear", "árvore de regressão (prof. 4)"],
-    "MAE": [mean_absolute_error(y_teste, p) for p in (previsao_boba, previsao_linear, previsao_arvore)],
-    "R2":  [r2_score(y_teste, p) for p in (previsao_boba, previsao_linear, previsao_arvore)],
-}).round(3)
-print(comparacao_q7.to_string(index=False))
+```python
+prev_lin = LinearRegression().fit(X_treino, y_treino).predict(X_teste)
+prev_arv = DecisionTreeRegressor(max_depth=4, random_state=42).fit(X_treino, y_treino).predict(X_teste)
+prev_bobo = np.full(len(y_teste), y_treino.mean())
+print(pd.DataFrame({"modelo": ["bobo", "linear", "árvore"],
+                    "MAE": [mean_absolute_error(y_teste, p) for p in (prev_bobo, prev_lin, prev_arv)],
+                    "R2": [r2_score(y_teste, p) for p in (prev_bobo, prev_lin, prev_arv)]}).round(3))
+```
 
-if mean_absolute_error(y_teste, previsao_linear) <= mean_absolute_error(y_teste, previsao_arvore):
-    previsao_escolhida, nome_escolhido = previsao_linear, "regressão linear"
-else:
-    previsao_escolhida, nome_escolhido = previsao_arvore, "árvore de regressão"
+**c) Gráfico real x previsto do modelo de menor MAE** (aqui, a linear). A linha tracejada é onde previsto = real.
 
+```python
+previsao = prev_lin
 fig, ax = plt.subplots(figsize=(6.5, 6))
-ax.scatter(y_teste, previsao_escolhida, alpha=0.5, s=22, color="#3b6ea5")
-minimo = float(min(y_teste.min(), previsao_escolhida.min()))
-maximo = float(max(y_teste.max(), previsao_escolhida.max()))
-ax.plot([minimo, maximo], [minimo, maximo], color="#c0392b", linestyle="--", label="previsão = valor real")
-ax.set_title(f"Valor real x valor previsto ({nome_escolhido})")
+ax.scatter(y_teste, previsao, alpha=0.5)
+minimo = float(min(y_teste.min(), previsao.min()))
+maximo = float(max(y_teste.max(), previsao.max()))
+ax.plot([minimo, maximo], [minimo, maximo], linestyle="--", color="red", label="previsão = valor real")
+ax.set_title("Valor real x valor previsto (regressão linear)")
 ax.set_xlabel("Taxa de engajamento real (%)")
 ax.set_ylabel("Taxa de engajamento prevista (%)")
 ax.legend()
-fig.tight_layout()
 plt.show()
 ```
 
-### Resultado
+**Tudo junto:** a, b e c em sequência. Resultado: bobo MAE 0,603 | **linear MAE 0,349, R² 0,644** | árvore MAE 0,516, R² 0,129.
 
-| modelo | MAE | R² |
-| --- | --- | --- |
-| modelo bobo (média) | 0,603 | -0,025 |
-| **regressão linear** | **0,349** | **0,644** |
-| árvore de regressão (prof. 4) | 0,516 | 0,129 |
+**Resposta:**
 
-A linear ganhou com folga (erro 42% menor que o chute da média). A árvore mal supera o bobo: com 90 publicações de treino ela não tem volume pra aproveitar a flexibilidade. Na aula 11 foi o contrário: nenhum modelo é sempre melhor.
+> O aprendizado adequado é a regressão, porque a variável-alvo, `taxa_engajamento_pct`, é um número contínuo e a equipe quer estimar o seu valor, não classificá-lo numa categoria. O MAE mede o erro absoluto médio na unidade do alvo: o MAE de 0,349 da regressão linear significa que, em média, a previsão erra a taxa em cerca de 0,35 ponto percentual para cima ou para baixo. Escolhi a regressão linear, que teve o menor MAE, 0,349 contra 0,516 da árvore, e o maior R², 0,644 contra 0,129, reduzindo o erro em cerca de 42% em relação ao modelo que sempre chuta a média. Como limitação, o modelo descreve associações observadas nesta campanha e não relações causais, então mudar uma característica numa nova peça não garante o efeito estimado.
 
-### Resposta
+## Questão 8: classificação e corte
 
-> O tipo de aprendizado adequado é a regressão, porque a variável-alvo, `taxa_engajamento_pct`, é um número contínuo e a equipe quer estimar o valor esperado dessa taxa, não classificá-la numa categoria. A classificação responderia a uma pergunta diferente, do tipo "esta peça vai ou não passar de determinado patamar", e ainda exigiria um corte arbitrário; a clusterização não se aplica porque não há alvo a prever, já que ela apenas agrupa registros por semelhança sem usar resposta conhecida. O MAE mede o erro absoluto médio na mesma unidade do alvo: o MAE de 0,349 da regressão linear significa que, em média, a previsão erra a taxa de engajamento em cerca de 0,35 ponto percentual, para cima ou para baixo. Escolhi a regressão linear, que teve o menor MAE, 0,349 contra 0,516 da árvore, e o maior R², 0,644 contra 0,129; comparadas ao modelo que sempre chuta a média do treino, com MAE 0,603, a linear reduz o erro em cerca de 42% enquanto a árvore fica bem perto do chute, o que sugere que 90 publicações de treino são poucas para uma árvore aproveitar sua flexibilidade. Como limitação, o modelo descreve associações observadas nesta campanha específica e não relações causais: as características não foram distribuídas de forma controlada entre as publicações, então alterar uma delas numa nova peça não garante o efeito que o modelo estima.
+**Tema:** decidir sim/não com 3 classificadores, matriz de confusão e corte. **Arquivo:** `publicacoes_analise.csv`.
 
-O erro mais comum é explicar o MAE só em abstrato. O que dá ponto é traduzir o número: errar 0,349 é errar cerca de um terço de ponto percentual na taxa.
-
-## Questão 8: priorização de divulgação
-
-### Enunciado
-
-Nos dias finais, a equipe só consegue dar divulgação adicional a poucas publicações. Pergunta: quais peças têm maior chance de receber a classificação "merece divulgação adicional"? Use **somente** `dados/publicacoes_analise.csv`. Crie `mereceu_divulgacao_adicional`: 1 quando `taxa_engajamento_pct` estiver acima do percentil 75, 0 nos demais.
-
-1. Na Markdown, diga qual tipo de aprendizado é adequado e explique brevemente por que os outros dois não respondem a essa decisão.
-2. Use apenas as características de antes da publicação (as mesmas da Q7), transformando categorias em colunas numéricas. Nada de identificador, alcance, interações ou `taxa_engajamento_pct` (vazamento).
-3. 75% treino e 25% teste, `random_state=42`, preservando a proporção do alvo.
-4. Escolha três classificadores: regressão logística, árvore de classificação, Random Forest, Extra Trees, AdaBoost ou Gaussian Naive Bayes.
-5. No teste, mostre precisão, recall e F1 dos três numa tabela e a matriz de confusão do modelo com maior F1.
-6. Na regressão logística já ajustada, compare os cortes 0,50 e 0,30 com precisão, recall e F1 numa tabela.
-
-Na resposta final, informe o modelo e o corte escolhidos e explique, em **até seis frases**, o que falso positivo e falso negativo significam para a equipe, justificando pelo trade-off entre precisão e recall.
-
-### Armadilhas
-
-A logística é **obrigatória** (a parte 6 mexe no corte dela). `.predict()` usa corte 0,50: pra outro corte precisa de `predict_proba(X_teste)[:, 1]`. O `ConvergenceWarning` é só aviso.
-
-- **Falso positivo:** gastou um dos poucos espaços numa peça que não ia render.
-- **Falso negativo:** uma peça que ia render ficou sem apoio.
-- **Precisão:** das que o modelo indicou, quantas mereciam. **Recall:** das que mereciam, quantas ele achou.
-
-### Código
+**a) Alvo, X, y, treino e teste.** Igual aos passos a, b e c da Q6.
 
 ```python
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+
 q8 = pd.read_csv("dados/publicacoes_analise.csv")
 corte_p75 = q8["taxa_engajamento_pct"].quantile(0.75)
 q8["mereceu_divulgacao_adicional"] = (q8["taxa_engajamento_pct"] > corte_p75).astype(int)
+CARACTERISTICAS = ["tema", "formato", "seguidores_autor", "videos_autor", "tamanho_legenda",
+                   "n_emojis", "n_hashtags", "hora", "dia_semana", "duracao_segundos"]
 X = pd.get_dummies(q8[CARACTERISTICAS], columns=["tema", "formato"])
 y = q8["mereceu_divulgacao_adicional"]
 X_treino, X_teste, y_treino, y_teste = train_test_split(X, y, test_size=0.25, random_state=42, stratify=y)
+```
 
+**b) Três modelos + tabela.** O laço `for` treina e testa cada um. Precisão = das indicadas, quantas eram boas; recall = das boas, quantas achou; F1 = equilíbrio.
+
+```python
 logistica = LogisticRegression(max_iter=5000)
 modelos = {"regressão logística": logistica,
            "árvore de classificação": DecisionTreeClassifier(max_depth=4, random_state=42, class_weight="balanced"),
@@ -523,59 +480,44 @@ linhas = []
 for nome, modelo in modelos.items():
     modelo.fit(X_treino, y_treino)
     decisao = modelo.predict(X_teste)
-    linhas.append({"modelo": nome, "precisão": precision_score(y_teste, decisao, zero_division=0),
+    linhas.append({"modelo": nome,
+                   "precisão": precision_score(y_teste, decisao, zero_division=0),
                    "recall": recall_score(y_teste, decisao, zero_division=0),
                    "F1": f1_score(y_teste, decisao, zero_division=0)})
-comparacao_q8 = pd.DataFrame(linhas).sort_values("F1", ascending=False).round(3)
-print(comparacao_q8.to_string(index=False))
+comparacao = pd.DataFrame(linhas).sort_values("F1", ascending=False).round(3)
+print(comparacao)
+```
 
-nome_melhor = comparacao_q8.iloc[0]["modelo"]
+**c) Matriz de confusão do maior F1.** VN e VP são acertos; FP = alarme falso; FN = deixou passar.
+
+```python
+nome_melhor = comparacao.iloc[0]["modelo"]
 cm = confusion_matrix(y_teste, modelos[nome_melhor].predict(X_teste))
-print(f"Maior F1: {nome_melhor}")
-print(f"VN={cm[0, 0]}  FP={cm[0, 1]}\nFN={cm[1, 0]}  VP={cm[1, 1]}")
+print("maior F1:", nome_melhor)
+print(f"VN={cm[0, 0]}  FP={cm[0, 1]}")
+print(f"FN={cm[1, 0]}  VP={cm[1, 1]}")
+```
 
+**d) Cortes 0,50 e 0,30.** `predict_proba(...)[:, 1]` dá a probabilidade de ser 1; com ela você escolhe o corte.
+
+```python
 probabilidade = logistica.predict_proba(X_teste)[:, 1]
 linhas_corte = []
 for corte in [0.50, 0.30]:
     d = (probabilidade >= corte).astype(int)
-    linhas_corte.append({"corte": corte, "precisão": precision_score(y_teste, d, zero_division=0),
-                         "recall": recall_score(y_teste, d, zero_division=0), "F1": f1_score(y_teste, d, zero_division=0),
-                         "VP": int(((d == 1) & (y_teste.values == 1)).sum()),
-                         "FP": int(((d == 1) & (y_teste.values == 0)).sum()),
-                         "FN": int(((d == 0) & (y_teste.values == 1)).sum())})
-print(pd.DataFrame(linhas_corte).round(3).to_string(index=False))
+    linhas_corte.append({"corte": corte,
+                         "precisão": precision_score(y_teste, d, zero_division=0),
+                         "recall": recall_score(y_teste, d, zero_division=0),
+                         "F1": f1_score(y_teste, d, zero_division=0)})
+print(pd.DataFrame(linhas_corte).round(3))
 ```
 
-### Resultado
+**Tudo junto:** a, b, c e d em sequência. Resultado: logística F1 0,800 (maior), Random Forest 0,600, árvore 0,533; matriz VN=21, FP=2, FN=1, VP=6; corte 0,50 → F1 0,800; corte 0,30 → recall 1,0 e F1 0,824.
 
-| modelo | precisão | recall | F1 |
-| --- | --- | --- | --- |
-| **regressão logística** | 0,750 | 0,857 | **0,800** |
-| Random Forest | 1,000 | 0,429 | 0,600 |
-| árvore de classificação | 0,500 | 0,571 | 0,533 |
+**Resposta 8.1 (tipo de modelo):**
 
-Matriz da logística: VN 21, **FP 2**, **FN 1**, VP 6. O Random Forest nunca errou quando apostou, mas só achou 3 das 7: precisão sozinha não basta. Atenção: essa linha do Random Forest é a única que muda com a versão do scikit-learn (no 1.9 ele passa a liderar). Na prova, use o que aparecer na sua tela.
+> O aprendizado adequado é a classificação, porque a variável-alvo é binária, indicando se a publicação merece ou não divulgação adicional, e a decisão da equipe também é binária. A regressão não responde diretamente porque estima um valor contínuo, que ainda precisaria de um corte para virar ação, e a clusterização não responde porque agrupa registros por semelhança sem usar a resposta conhecida, que aqui foi definida pelo percentil 75.
 
-| corte | precisão | recall | F1 | VP | FP | FN |
-| --- | --- | --- | --- | --- | --- | --- |
-| 0,50 | 0,750 | 0,857 | 0,800 | 6 | 2 | 1 |
-| 0,30 | 0,700 | **1,000** | **0,824** | 7 | 3 | 0 |
+**Resposta 8 (decisão, até 6 frases):**
 
-Baixar pra 0,30 pegou a única que escapava ao custo de um alarme falso a mais, e o F1 até subiu: aqui não houve trade-off difícil. Mas com 7 positivos no teste, cada acerto move o recall em cerca de 0,14.
-
-### Resposta 8.1: tipo de modelo
-
-> O aprendizado adequado é a classificação, porque a variável-alvo é binária, indicando apenas se a publicação merece ou não divulgação adicional, e a decisão da equipe também é binária. A regressão não responde diretamente a essa decisão porque estima um valor contínuo, que ainda precisaria de um corte arbitrário para virar ação. A clusterização não responde porque agrupa registros por semelhança sem usar nenhuma resposta conhecida, enquanto aqui a resposta existe e foi definida pela própria equipe a partir do percentil 75.
-
-### Resposta 8: decisão e riscos de erro
-
-> Escolhi a regressão logística, que teve o maior F1 entre os três modelos comparados, com 0,800, e o corte de 0,30 em vez do padrão de 0,50. Um falso positivo significa gastar um dos poucos espaços de divulgação adicional numa publicação que não iria render, desperdiçando um recurso escasso nos dias finais da campanha, e um falso negativo significa deixar sem apoio uma peça que teria bom desempenho, uma oportunidade que não volta antes do festival. No corte padrão de 0,50, o modelo encontrou 6 das 7 publicações que realmente mereciam apoio, com 2 alarmes falsos e 1 deixada passar. Baixando o corte para 0,30, ele passa a encontrar todas as 7, levando o recall a 1,00, ao custo de apenas um alarme falso a mais, e a precisão cai pouco, de 0,75 para 0,70, de modo que o F1 ainda sobe, de 0,800 para 0,824. Como o ganho de recall custou quase nada em precisão, o corte mais baixo é melhor pelos dois critérios ao mesmo tempo, e não um trade-off difícil como normalmente seria. A ressalva importante é que o conjunto de teste tem apenas 30 publicações e 7 positivos, de forma que cada acerto ou erro move o recall em cerca de 0,14 ponto: a vantagem observada para o corte de 0,30 equivale a uma única publicação e não deveria ser tratada como regra estável para as próximas campanhas.
-
-## Os seis erros que mais custam ponto
-
-1. Esquecer `pd.get_dummies` nas Q6, Q7 e Q8.
-2. Usar `stratify` na regressão (Q7).
-3. `drop_duplicates()` sem `subset="id_publicacao"` (Q2).
-4. `dayfirst=True` numa coluna com formatos misturados, sem conferir `.min()` e `.max()` (Q2).
-5. Gráfico sem título, nome de eixo ou fonte (Q3, Q4, Q5).
-6. Resposta em Markdown genérica ou com o número errado de frases.
+> Escolhi a regressão logística, que teve o maior F1 entre os três modelos, com 0,800, e o corte de 0,30 em vez do padrão de 0,50. Um falso positivo significa gastar um dos poucos espaços de divulgação numa publicação que não iria render, e um falso negativo significa deixar sem apoio uma peça que teria bom desempenho. No corte de 0,50, o modelo encontrou 6 das 7 publicações que mereciam apoio, com 2 alarmes falsos e 1 deixada passar. Com o corte de 0,30, ele encontra todas as 7, com recall de 1,00, ao custo de só um alarme falso a mais: a precisão cai de 0,75 para 0,70 e o F1 sobe de 0,800 para 0,824. Como o ganho de recall custou quase nada em precisão, o corte mais baixo é melhor pelos dois critérios. A ressalva é que o teste tem apenas 7 positivos, então essa vantagem equivale a uma única publicação e não é regra estável.

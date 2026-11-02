@@ -56,8 +56,8 @@ Na aula 21 vimos como limpar texto com regex (minúsculas, tirar links, ficar s�
 ### Quatro fichas auditadas
 
 - **P11 (Agência Brasil, foco Flávio):** O fato só repete a manchete. Ficaram de fora as críticas a Lula, as promessas econômicas e a afirmação de que os cortes não virão da área social. Marcação: ausência.
-- **P09 (Agência Brasil, foco Lula):** A pessoa central veio vazia e a ficha não diz quem é o agente. O prazo de 48 horas foi parar no campo `limite`. Marcação: ausência e campo usado errado.
-- **P40 (CNN Brasil, foco Flávio):** A pessoa central é Michelle, e "exercer mandato" ficou vago. O `limite` é um pedaço do texto. Marcação: ambiguidade e campo usado errado.
+- **P09 (Agência Brasil, foco Lula):** A pessoa central veio vazia e a ficha não diz quem é o agente. O prazo de 48 horas foi parar no campo limite. Marcação: ausência e campo usado errado.
+- **P40 (CNN Brasil, foco Flávio):** A pessoa central é Michelle, e "exercer mandato" ficou vago. O limite é um pedaço do texto. Marcação: ambiguidade e campo usado errado.
 - **P27 (CNN Brasil, foco Lula):** O fato só fala do registro do canal. Janones aparece só como criador do canal, e o texto não diz quem fez o registro. Marcação: atribuição ambígua e campo usado errado.
 
 ### Tópico confuso

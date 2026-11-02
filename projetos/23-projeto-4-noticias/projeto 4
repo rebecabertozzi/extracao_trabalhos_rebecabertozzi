@@ -1,6 +1,15 @@
-
 {
   "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/rebecabertozzi/extracao_trabalhos_rebecabertozzi/blob/main/projetos/23-projeto-4-noticias/projeto%204\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
     {
       "cell_type": "markdown",
       "metadata": {
@@ -29,7 +38,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 30,
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -78,7 +87,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 31,
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -161,7 +170,7 @@
         "outputId": "51a57b91-c4d7-4bf6-a246-912d24d74a95"
       },
       "id": "Nzbu6u3Ajk-F",
-      "execution_count": 32,
+      "execution_count": null,
       "outputs": [
         {
           "output_type": "stream",
@@ -215,7 +224,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 33,
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -302,7 +311,7 @@
         "outputId": "b8984dac-1691-4c11-ad16-34a37337749d"
       },
       "id": "YZqLQV9QlQtP",
-      "execution_count": 34,
+      "execution_count": null,
       "outputs": [
         {
           "output_type": "execute_result",
@@ -580,7 +589,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 35,
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -622,7 +631,7 @@
         "outputId": "d1576666-f888-4495-fe76-8a1dd68a5c04"
       },
       "id": "3JkhJyUiqatP",
-      "execution_count": 36,
+      "execution_count": null,
       "outputs": [
         {
           "output_type": "stream",
@@ -635,7 +644,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 37,
+      "execution_count": null,
       "metadata": {
         "id": "L_Y5nVYffvU2"
       },
@@ -673,7 +682,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 38,
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -701,7 +710,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 39,
+      "execution_count": null,
       "metadata": {
         "id": "afOeS6tFfvU2"
       },
@@ -732,7 +741,7 @@
         "outputId": "0cc08417-468d-40d4-8e04-d6e43191bcb8"
       },
       "id": "VEPOJ4MXthrp",
-      "execution_count": 40,
+      "execution_count": null,
       "outputs": [
         {
           "output_type": "execute_result",
@@ -1065,7 +1074,7 @@
         "outputId": "81eae87c-727f-41b4-b678-4236f9c9926b"
       },
       "id": "ysRCF5U5uBmY",
-      "execution_count": 41,
+      "execution_count": null,
       "outputs": [
         {
           "output_type": "stream",
@@ -1165,7 +1174,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 42,
+      "execution_count": null,
       "metadata": {
         "colab": {
           "base_uri": "https://localhost:8080/"
@@ -1232,7 +1241,7 @@
         "outputId": "523e1f2a-1924-4116-f606-8a647b19e79f"
       },
       "id": "03EtE93SvePI",
-      "execution_count": 43,
+      "execution_count": null,
       "outputs": [
         {
           "output_type": "stream",
@@ -1326,7 +1335,8 @@
       "name": "python"
     },
     "colab": {
-      "provenance": []
+      "provenance": [],
+      "include_colab_link": true
     },
     "widgets": {
       "application/vnd.jupyter.widget-state+json": {

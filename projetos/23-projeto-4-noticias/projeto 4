@@ -1,1 +1,1684 @@
 
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "itq0V3gXfvUw"
+      },
+      "source": [
+        "# Projeto 4 — Clipping comparativo (peso 2)\n",
+        "\n",
+        "**Pergunta:** o que este recorte de notícias da Agência Brasil e da CNN Brasil mostra sobre a cobertura de Lula e Flávio Bolsonaro? Transforme textos em dados auditáveis e escreva uma conclusão proporcional ao tamanho da amostra. A base tem 40 matérias selecionadas, dez por combinação de veículo e foco, publicadas em outubro de 2026. **Não é uma amostra aleatória de toda a cobertura.**\n",
+        "\n",
+        "Entregue uma pasta `23-projeto-4-noticias/` no seu repositório privado com notebook executado, `README.md` e tabelas de resultado pequenas. O projeto integra Aulas 21–23 e vale peso 2. Crie sua **própria chave Groq**; nunca a salve nem a envie."
+      ],
+      "id": "itq0V3gXfvUw"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "FQC5DmI6fvUz"
+      },
+      "source": [
+        "## 0. Carregar e conferir a base\n",
+        "\n",
+        "Abra no Colab. Se este notebook estiver numa pasta isolada, ele baixa a tabela publicada no repositório da disciplina. Confira 40 linhas, datas, URLs e o equilíbrio 10×4."
+      ],
+      "id": "FQC5DmI6fvUz"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 30,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "CYKYOrpdfvUz",
+        "outputId": "00286f73-f8d9-4ed9-db0f-67dc18950ecf"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "(40, 8)\n",
+            "foco_amostral   Flávio Bolsonaro  Lula\n",
+            "veiculo                               \n",
+            "Agência Brasil                10    10\n",
+            "CNN Brasil                    10    10\n"
+          ]
+        }
+      ],
+      "source": [
+        "import pandas as pd\n",
+        "from pathlib import Path\n",
+        "arquivo_local = Path(\"dados/noticias_lula_flavio_2026.csv\")\n",
+        "if not arquivo_local.exists():\n",
+        "    arquivo_local = Path(\"../dados/noticias_lula_flavio_2026.csv\")\n",
+        "url_base = \"https://raw.githubusercontent.com/mateuspestana/extracao_analise_2026/main/aulas/23-extracao-busca-semantica/dados/noticias_lula_flavio_2026.csv\"\n",
+        "politica = pd.read_csv(arquivo_local if arquivo_local.exists() else url_base)\n",
+        "print(politica.shape)\n",
+        "print(pd.crosstab(politica[\"veiculo\"], politica[\"foco_amostral\"]))\n",
+        "assert len(politica) == 40"
+      ],
+      "id": "CYKYOrpdfvUz"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "RDsgAOXFfvU0"
+      },
+      "source": [
+        "## 1. Preparação textual — Aula 21\n",
+        "\n",
+        "Preserve `texto_analise`; crie `texto_preparado` com regras justificadas. Conte documentos vazios, duplicatas, tokens antes/depois. Mostre três casos lado a lado; um deve conter nome próprio ou negação."
+      ],
+      "id": "RDsgAOXFfvU0"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 31,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "h6yP066IfvU1",
+        "outputId": "f8f5d919-850a-41e0-88ff-844fc0da7def"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Vazios antes: 0\n",
+            "Vazios depois: 0\n",
+            "Duplicatas antes: 0\n",
+            "Duplicatas depois: 0\n",
+            "Tokens antes: 1279\n",
+            "Tokens depois: 895\n"
+          ]
+        }
+      ],
+      "source": [
+        "import re\n",
+        "\n",
+        "stopwords_pequenas = {\"a\", \"o\", \"as\", \"os\", \"de\", \"da\", \"do\", \"das\", \"dos\", \"em\", \"no\", \"na\",\n",
+        "                      \"nos\", \"nas\", \"um\", \"uma\", \"para\", \"por\", \"com\", \"que\", \"e\", \"se\", \"ao\",\n",
+        "                      \"foi\", \"ser\", \"são\", \"mais\"}\n",
+        "\n",
+        "def preparar(texto):\n",
+        "    texto = str(texto).lower()\n",
+        "    texto = re.sub(r\"https?://\\S+\", \" \", texto)\n",
+        "    tokens = re.findall(r\"\\b[^\\W\\d_]+\\b\", texto, flags=re.UNICODE)\n",
+        "    return \" \".join(t for t in tokens if t not in stopwords_pequenas)\n",
+        "\n",
+        "politica[\"texto_preparado\"] = politica[\"texto_analise\"].map(preparar)\n",
+        "\n",
+        "print(\"Vazios antes:\", politica[\"texto_analise\"].str.strip().eq(\"\").sum())\n",
+        "print(\"Vazios depois:\", politica[\"texto_preparado\"].str.strip().eq(\"\").sum())\n",
+        "print(\"Duplicatas antes:\", politica[\"texto_analise\"].duplicated().sum())\n",
+        "print(\"Duplicatas depois:\", politica[\"texto_preparado\"].duplicated().sum())\n",
+        "print(\"Tokens antes:\", politica[\"texto_analise\"].str.split().str.len().sum())\n",
+        "print(\"Tokens depois:\", politica[\"texto_preparado\"].str.split().str.len().sum())"
+      ],
+      "id": "h6yP066IfvU1"
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Comentários**\n",
+        "\n",
+        "Mantive o texto_analise do jeito que veio e fiz a limpeza numa coluna nova, a texto_preparado.\n",
+        "\n",
+        "O que eu fiz:\n",
+        "\n",
+        "- **Deixei tudo em minúsculo**\n",
+        "- **Tirei os links**\n",
+        "- **Deixei só letras:** tirei números e pontuação, mas mantive os acentos, porque eles fazem parte da palavra.\n",
+        "- **Tirei alguns stopwords**\n",
+        "- **Mantive o \"não\", \"nem\", \"nunca\" e \"sem\"**"
+      ],
+      "metadata": {
+        "id": "ZzgSpoffhufF"
+      },
+      "id": "ZzgSpoffhufF"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "for id_caso in [\"P33\", \"P11\", \"P26\"]:\n",
+        "    linha = politica[politica[\"id\"] == id_caso].iloc[0]\n",
+        "    print(\"ID:\", linha[\"id\"])\n",
+        "    print(\"ANTES:\", linha[\"texto_analise\"][:250])\n",
+        "    print(\"DEPOIS:\", linha[\"texto_preparado\"][:250], \"\\n\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Nzbu6u3Ajk-F",
+        "outputId": "51a57b91-c4d7-4bf6-a246-912d24d74a95"
+      },
+      "id": "Nzbu6u3Ajk-F",
+      "execution_count": 32,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "ID: P33\n",
+            "ANTES: O que sabemos sobre a propaganda de Flávio que foi exibida sem áudio. TSE e entidades do setor atribuíram o problema a uma falha técnica na preparação das mídias; material de Lula foi exibido com som após a correção\n",
+            "DEPOIS: sabemos sobre propaganda flávio exibida sem áudio tse entidades setor atribuíram problema falha técnica preparação mídias material lula exibido som após correção \n",
+            "\n",
+            "ID: P11\n",
+            "ANTES: Flávio passa domingo reunido com prefeitos e vereadores de São Paulo. Candidato do PL fez críticas ao presidente Lula e promessas econômicas. Pelas redes sociais, Flávio Bolsonaro afirmou que os cortes de gastos públicos prometidos por ele não virão \n",
+            "DEPOIS: flávio passa domingo reunido prefeitos vereadores paulo candidato pl fez críticas presidente lula promessas econômicas pelas redes sociais flávio bolsonaro afirmou cortes gastos públicos prometidos ele não virão área social \n",
+            "\n",
+            "ID: P26\n",
+            "ANTES: Lula admitirá alto custo de vida e gravará campanha em casa de apoiadores. Presidente pretende reconhecer insatisfação com preços e culpará Bolsonaro\n",
+            "DEPOIS: lula admitirá alto custo vida gravará campanha casa apoiadores presidente pretende reconhecer insatisfação preços culpará bolsonaro \n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Três casos lado a lado**\n",
+        "\n",
+        "Escolhi três notícias de veículos e focos diferentes pra ver o antes e o depois da limpeza.\n",
+        "\n",
+        "- **P33 (negação):** o \"sem\" de \"sem áudio\" continuou no texto. Se eu tivesse tirado, ficaria \"exibida áudio\", que quer dizer o contrário do que a notícia conta.\n",
+        "- **P11 (nome próprio):** \"Flávio Bolsonaro\" virou \"flávio bolsonaro\", tudo minúsculo, então o computador não sabe mais que é um nome. O \"não virão\" também ficou. Aqui deu pra ver um problema: \"São Paulo\" virou só \"paulo\", porque \"são\" estava na minha lista de stopwords. Ou seja, essa palavra saiu num lugar onde era parte de um nome.\n",
+        "- **P26 (caso comum):** só saíram palavras como \"em\", \"de\" e \"a\", e o resto ficou igual.\n",
+        "\n",
+        "No geral, a limpeza ajudou a deixar o texto mais enxuto, mas mostrou que dá pra perder informação sem querer, como no caso do \"São Paulo\"."
+      ],
+      "metadata": {
+        "id": "BFUxPMGakHa8"
+      },
+      "id": "BFUxPMGakHa8"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "IyjfAcopfvU1"
+      },
+      "source": [
+        "## 2. Tópicos — Aula 22\n",
+        "\n",
+        "Aplique TF-IDF e NMF às 40 linhas. Use poucos tópicos e `random_state=42`. Mostre palavras e manchetes representativas, dê nomes provisórios e faça uma tabela por veículo e foco. Conte também as menções a Lula e Flávio nos títulos e resumos, sempre com o denominador de cada grupo. Explique ao menos um tópico confuso. As editorias do corpus geral da aula não existem nesta base."
+      ],
+      "id": "IyjfAcopfvU1"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 33,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "2-a5oVGTfvU1",
+        "outputId": "5828fba1-d9f1-4794-c102-f198f2b4894e"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "0 turno, segundo, segundo turno, senador, pai, candidato, presidencia, candidato presidencia\n",
+            "1 canal, tse, exercito, canal exercito, eleitoral, sobre, nunes marques, marques\n",
+            "2 ato, rio, apoio, defesa, ato rio, reeleicao, educacao, sociais\n",
+            "3 campanha, casa, presidente, vida, site, oferece, site oferece, pretende\n",
+            "topico                           0  1  2  3\n",
+            "veiculo        foco_amostral               \n",
+            "Agência Brasil Flávio Bolsonaro  1  0  6  3\n",
+            "               Lula              0  3  4  3\n",
+            "CNN Brasil     Flávio Bolsonaro  6  2  1  1\n",
+            "               Lula              2  2  3  3\n",
+            "\n",
+            "Tópico 0\n",
+            "P39 CNN Brasil — Flávio: Bolsonaro está satisfeito com 1º turno e deu \"dicas\" para disputa\n",
+            "P38 CNN Brasil — Flávio buscará orientação de Bolsonaro para reta final, dizem aliados\n",
+            "\n",
+            "Tópico 1\n",
+            "P05 Agência Brasil — Técnicos do TSE não encontram conteúdo falso no canal Exército do Lula\n",
+            "P27 CNN Brasil — Canal \"Exército do Lula\" é registrado junto ao TSE\n",
+            "\n",
+            "Tópico 2\n",
+            "P04 Agência Brasil — Estudantes fazem ato no Rio de Janeiro em defesa de voto em Lula\n",
+            "P15 Agência Brasil — Flávio Bolsonaro faz ato no Rio ao lado de Douglas Ruas\n",
+            "\n",
+            "Tópico 3\n",
+            "P26 CNN Brasil — Lula admitirá alto custo de vida e gravará campanha em casa de apoiadores\n",
+            "P01 Agência Brasil — Lula defende respeito às religiões no Dia de Nossa Senhora Aparecida\n"
+          ]
+        }
+      ],
+      "source": [
+        "from sklearn.feature_extraction.text import TfidfVectorizer\n",
+        "from sklearn.decomposition import NMF\n",
+        "import unicodedata\n",
+        "\n",
+        "stopwords = \"a o e de da do das dos em no na nos nas um uma para por com que se os as ao foi ser são mais também lula flávio bolsonaro\".split()\n",
+        "stopwords = [unicodedata.normalize(\"NFD\", w).encode(\"ascii\", \"ignore\").decode(\"ascii\") for w in stopwords]\n",
+        "vetor = TfidfVectorizer(strip_accents=\"unicode\", stop_words=stopwords,\n",
+        "                        min_df=2, max_df=0.85, max_features=1000, ngram_range=(1, 2))\n",
+        "X = vetor.fit_transform(politica[\"texto_preparado\"])\n",
+        "nmf = NMF(n_components=4, init=\"nndsvda\", random_state=42, max_iter=300)\n",
+        "pesos = nmf.fit_transform(X)\n",
+        "termos = vetor.get_feature_names_out()\n",
+        "\n",
+        "for i, comp in enumerate(nmf.components_):\n",
+        "    print(i, \", \".join(termos[j] for j in comp.argsort()[-8:][::-1]))\n",
+        "\n",
+        "politica[\"topico\"] = pesos.argmax(axis=1)\n",
+        "print(pd.crosstab([politica.veiculo, politica.foco_amostral], politica.topico))\n",
+        "\n",
+        "for i in range(4):\n",
+        "    print(\"\\nTópico\", i)\n",
+        "    for pos in pesos[:, i].argsort()[-2:][::-1]:\n",
+        "        print(politica.loc[pos, \"id\"], politica.loc[pos, \"veiculo\"], \"—\", politica.loc[pos, \"titulo\"][:100])"
+      ],
+      "id": "2-a5oVGTfvU1"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "politica[\"mencoes_lula\"] = politica[\"texto_analise\"].str.count(r\"(?i)\\bLula\\b\")\n",
+        "politica[\"mencoes_flavio\"] = politica[\"texto_analise\"].str.count(r\"(?i)\\bFlávio\\b\")\n",
+        "mencoes = politica.groupby([\"veiculo\", \"foco_amostral\"])[[\"mencoes_lula\", \"mencoes_flavio\"]].sum()\n",
+        "mencoes[\"materias_no_grupo\"] = politica.groupby([\"veiculo\", \"foco_amostral\"]).size()\n",
+        "mencoes"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 206
+        },
+        "id": "YZqLQV9QlQtP",
+        "outputId": "b8984dac-1691-4c11-ad16-34a37337749d"
+      },
+      "id": "YZqLQV9QlQtP",
+      "execution_count": 34,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "                                 mencoes_lula  mencoes_flavio  \\\n",
+              "veiculo        foco_amostral                                    \n",
+              "Agência Brasil Flávio Bolsonaro             6              13   \n",
+              "               Lula                        13               4   \n",
+              "CNN Brasil     Flávio Bolsonaro             6              11   \n",
+              "               Lula                        10               2   \n",
+              "\n",
+              "                                 materias_no_grupo  \n",
+              "veiculo        foco_amostral                        \n",
+              "Agência Brasil Flávio Bolsonaro                 10  \n",
+              "               Lula                             10  \n",
+              "CNN Brasil     Flávio Bolsonaro                 10  \n",
+              "               Lula                             10  "
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-08e93f95-4a74-4b8c-98ab-956f8d5d4a62\" class=\"colab-df-container\">\n",
+              "    <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th>mencoes_lula</th>\n",
+              "      <th>mencoes_flavio</th>\n",
+              "      <th>materias_no_grupo</th>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>veiculo</th>\n",
+              "      <th>foco_amostral</th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "      <th></th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th rowspan=\"2\" valign=\"top\">Agência Brasil</th>\n",
+              "      <th>Flávio Bolsonaro</th>\n",
+              "      <td>6</td>\n",
+              "      <td>13</td>\n",
+              "      <td>10</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>Lula</th>\n",
+              "      <td>13</td>\n",
+              "      <td>4</td>\n",
+              "      <td>10</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th rowspan=\"2\" valign=\"top\">CNN Brasil</th>\n",
+              "      <th>Flávio Bolsonaro</th>\n",
+              "      <td>6</td>\n",
+              "      <td>11</td>\n",
+              "      <td>10</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>Lula</th>\n",
+              "      <td>10</td>\n",
+              "      <td>2</td>\n",
+              "      <td>10</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>\n",
+              "    <div class=\"colab-df-buttons\">\n",
+              "\n",
+              "  <div class=\"colab-df-container\">\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-08e93f95-4a74-4b8c-98ab-956f8d5d4a62')\"\n",
+              "            title=\"Convert this dataframe to an interactive table.\"\n",
+              "            style=\"display:none;\">\n",
+              "\n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\" viewBox=\"0 -960 960 960\">\n",
+              "    <path d=\"M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z\"/>\n",
+              "  </svg>\n",
+              "    </button>\n",
+              "\n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-buttons div {\n",
+              "      margin-bottom: 4px;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "    <script>\n",
+              "      const buttonEl =\n",
+              "        document.querySelector('#df-08e93f95-4a74-4b8c-98ab-956f8d5d4a62 button.colab-df-convert');\n",
+              "      buttonEl.style.display =\n",
+              "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "      async function convertToInteractive(key) {\n",
+              "        const element = document.querySelector('#df-08e93f95-4a74-4b8c-98ab-956f8d5d4a62');\n",
+              "        const dataTable =\n",
+              "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                    [key], {});\n",
+              "        if (!dataTable) return;\n",
+              "\n",
+              "        const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "          '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "          + ' to learn more about interactive tables.';\n",
+              "        element.innerHTML = '';\n",
+              "        dataTable['output_type'] = 'display_data';\n",
+              "        await google.colab.output.renderOutput(dataTable, element);\n",
+              "        const docLink = document.createElement('div');\n",
+              "        docLink.innerHTML = docLinkHtml;\n",
+              "        element.appendChild(docLink);\n",
+              "      }\n",
+              "    </script>\n",
+              "  </div>\n",
+              "\n",
+              "\n",
+              "  <div id=\"id_06cfece4-287a-4888-a40f-92f8fe4db928\">\n",
+              "    <style>\n",
+              "      .colab-df-generate {\n",
+              "        background-color: #E8F0FE;\n",
+              "        border: none;\n",
+              "        border-radius: 50%;\n",
+              "        cursor: pointer;\n",
+              "        display: none;\n",
+              "        fill: #1967D2;\n",
+              "        height: 32px;\n",
+              "        padding: 0 0 0 0;\n",
+              "        width: 32px;\n",
+              "      }\n",
+              "\n",
+              "      .colab-df-generate:hover {\n",
+              "        background-color: #E2EBFA;\n",
+              "        box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "        fill: #174EA6;\n",
+              "      }\n",
+              "\n",
+              "      [theme=dark] .colab-df-generate {\n",
+              "        background-color: #3B4455;\n",
+              "        fill: #D2E3FC;\n",
+              "      }\n",
+              "\n",
+              "      [theme=dark] .colab-df-generate:hover {\n",
+              "        background-color: #434B5C;\n",
+              "        box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "        filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "        fill: #FFFFFF;\n",
+              "      }\n",
+              "    </style>\n",
+              "    <button class=\"colab-df-generate\" onclick=\"generateWithVariable('mencoes')\"\n",
+              "            title=\"Generate code using this dataframe.\"\n",
+              "            style=\"display:none;\">\n",
+              "\n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\"viewBox=\"0 0 24 24\"\n",
+              "       width=\"24px\">\n",
+              "    <path d=\"M7,19H8.4L18.45,9,17,7.55,7,17.6ZM5,21V16.75L18.45,3.32a2,2,0,0,1,2.83,0l1.4,1.43a1.91,1.91,0,0,1,.58,1.4,1.91,1.91,0,0,1-.58,1.4L9.25,21ZM18.45,9,17,7.55Zm-12,3A5.31,5.31,0,0,0,4.9,8.1,5.31,5.31,0,0,0,1,6.5,5.31,5.31,0,0,0,4.9,4.9,5.31,5.31,0,0,0,6.5,1,5.31,5.31,0,0,0,8.1,4.9,5.31,5.31,0,0,0,12,6.5,5.46,5.46,0,0,0,6.5,12Z\"/>\n",
+              "  </svg>\n",
+              "    </button>\n",
+              "    <script>\n",
+              "      (() => {\n",
+              "      const buttonEl =\n",
+              "        document.querySelector('#id_06cfece4-287a-4888-a40f-92f8fe4db928 button.colab-df-generate');\n",
+              "      buttonEl.style.display =\n",
+              "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "      buttonEl.onclick = () => {\n",
+              "        google.colab.notebook.generateWithVariable('mencoes');\n",
+              "      }\n",
+              "      })();\n",
+              "    </script>\n",
+              "  </div>\n",
+              "\n",
+              "    </div>\n",
+              "  </div>\n"
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "dataframe",
+              "variable_name": "mencoes",
+              "summary": "{\n  \"name\": \"mencoes\",\n  \"rows\": 4,\n  \"fields\": [\n    {\n      \"column\": \"mencoes_lula\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 3,\n        \"min\": 6,\n        \"max\": 13,\n        \"num_unique_values\": 3,\n        \"samples\": [\n          6,\n          13,\n          10\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"mencoes_flavio\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 5,\n        \"min\": 2,\n        \"max\": 13,\n        \"num_unique_values\": 4,\n        \"samples\": [\n          4,\n          2,\n          13\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"materias_no_grupo\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 10,\n        \"max\": 10,\n        \"num_unique_values\": 1,\n        \"samples\": [\n          10\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
+            }
+          },
+          "metadata": {},
+          "execution_count": 34
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Comentários**\n",
+        "\n",
+        "Dei nomes provisórios só depois de olhar as palavras e as manchetes de cada tópico.\n",
+        "\n",
+        "Tópico 0, “segundo turno e conselhos de Bolsonaro a Flávio”: as palavras são turno, segundo turno, senador, pai e candidato. As manchetes são P39 e P38, as duas da CNN Brasil. Na tabela, 6 das 10 matérias da CNN sobre Flávio caíram aqui.\n",
+        "Tópico 1, “canal Exército do Lula e TSE”: as palavras são canal, tse, exército e nunes marques. As manchetes são P05 e P27, as duas sobre o canal. Tem poucas matérias (de 2 a 3 por grupo).\n",
+        "Tópico 2, “atos e apoios no Rio”: as palavras são ato, rio, apoio, defesa e reeleição. As manchetes são P04 (ato de estudantes por Lula) e P15 (ato de Flávio no Rio). Na Agência Brasil ele pegou 6 matérias do grupo de Flávio e 4 do grupo de Lula.\n",
+        "Tópico 3, “campanha e custo de vida” (o confuso): as palavras são campanha, casa, presidente, vida e site oferece. O P26 fala de custo de vida e de gravar em casa de apoiadores. O P01 fala de religião e do Minha Casa, Minha Vida. As palavras “casa” e “vida” aparecem nos dois por motivos diferentes, então o tópico juntou assuntos que não têm relação. Ele também aparece espalhado nos quatro grupos (3, 3, 1 e 3 matérias), então não ajuda a diferenciar nada."
+      ],
+      "metadata": {
+        "id": "w_-g7JCioSOd"
+      },
+      "id": "w_-g7JCioSOd"
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Menções (denominador de 10 matérias por grupo)**\n",
+        "\n",
+        "Em todos os grupos o candidato do foco é o mais citado. Na Agência Brasil, o grupo de Lula tem 13 menções a Lula e 4 a Flávio, e o grupo de Flávio tem 13 a Flávio e 6 a Lula. Na CNN, o grupo de Lula tem 10 menções a Lula e 2 a Flávio, e o grupo de Flávio tem 11 a Flávio e 6 a Lula. A contagem é de menções, não de matérias, então uma matéria pode citar o nome mais de uma vez. São só 40 textos, então isso serve para descrever o recorte e não para dizer quais são os temas da campanha."
+      ],
+      "metadata": {
+        "id": "vixSGMB7od8t"
+      },
+      "id": "vixSGMB7od8t"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "motEofnQfvU1"
+      },
+      "source": [
+        "## 3. Extração estruturada — Aula 23\n",
+        "\n",
+        "Crie sua própria chave Groq. Reaproveite o esquema e a função `extrair()` da aula principal. Selecione **4 notícias por combinação de veículo e foco** com `groupby(...).sample(n=4, random_state=42)`; são 16 chamadas ao todo. Faça primeiro **uma** chamada de teste. Depois rode o lote **uma vez** e guarde a tabela. Não repita o lote ao ajustar gráficos ou texto do relatório.\n",
+        "\n",
+        "Confira se `evidencia` é um trecho literal de `texto_analise`. Audite manualmente pelo menos quatro fichas, uma por combinação. Marque ausências, exageros e atribuições ambíguas; não conserte silenciosamente a saída do modelo."
+      ],
+      "id": "motEofnQfvU1"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 35,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "5rLGjUkSfvU2",
+        "outputId": "e2949a0a-5a4c-4dea-cbbe-10cb679f577d"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Sua chave Groq (não aparece): ··········\n",
+            "foco_amostral   Flávio Bolsonaro  Lula\n",
+            "veiculo                               \n",
+            "Agência Brasil                 4     4\n",
+            "CNN Brasil                     4     4\n"
+          ]
+        }
+      ],
+      "source": [
+        "from getpass import getpass\n",
+        "chave_groq = getpass(\"Sua chave Groq (não aparece): \")\n",
+        "amostra_ia = politica.groupby([\"veiculo\", \"foco_amostral\"], group_keys=False).sample(n=4, random_state=42)\n",
+        "print(pd.crosstab(amostra_ia.veiculo, amostra_ia.foco_amostral))\n"
+      ],
+      "id": "5rLGjUkSfvU2"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "print(len(chave_groq), chave_groq[:4])"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "3JkhJyUiqatP",
+        "outputId": "d1576666-f888-4495-fe76-8a1dd68a5c04"
+      },
+      "id": "3JkhJyUiqatP",
+      "execution_count": 36,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "56 gsk_\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 37,
+      "metadata": {
+        "id": "L_Y5nVYffvU2"
+      },
+      "outputs": [],
+      "source": [
+        "import requests, json\n",
+        "modelo_groq = \"openai/gpt-oss-20b\"\n",
+        "esquema = {\n",
+        "    \"type\": \"object\", \"additionalProperties\": False,\n",
+        "    \"properties\": {\n",
+        "        \"pessoa_central\": {\"type\": [\"string\", \"null\"]},\n",
+        "        \"fato\": {\"type\": \"string\"},\n",
+        "        \"tema\": {\"type\": \"string\"},\n",
+        "        \"evidencia\": {\"type\": \"string\"},\n",
+        "        \"limite\": {\"type\": \"string\"}\n",
+        "    },\n",
+        "    \"required\": [\"pessoa_central\", \"fato\", \"tema\", \"evidencia\", \"limite\"]\n",
+        "}\n",
+        "\n",
+        "def extrair(texto):\n",
+        "    resposta = requests.post(\n",
+        "        \"https://api.groq.com/openai/v1/chat/completions\",\n",
+        "        headers={\"Authorization\": f\"Bearer {chave_groq}\"},\n",
+        "        json={\"model\": modelo_groq, \"temperature\": 0, \"reasoning_effort\": \"low\", \"max_completion_tokens\": 600,\n",
+        "              \"messages\": [{\"role\": \"system\", \"content\": \"Extraia apenas fatos presentes no texto recebido. A evidencia deve ser um trecho literal e contínuo do texto. Se não houver pessoa central, use null. Não infira intenção política nem viés do veículo.\"},\n",
+        "                           {\"role\": \"user\", \"content\": texto}],\n",
+        "              \"response_format\": {\"type\": \"json_schema\", \"json_schema\": {\"name\": \"ficha_noticia\", \"strict\": True, \"schema\": esquema}}},\n",
+        "        timeout=40)\n",
+        "    if resposta.status_code == 429:\n",
+        "        raise RuntimeError(\"Limite Groq atingido (429). Aguarde antes de tentar outra chamada.\")\n",
+        "    resposta.raise_for_status()\n",
+        "    return json.loads(resposta.json()[\"choices\"][0][\"message\"][\"content\"])\n"
+      ],
+      "id": "L_Y5nVYffvU2"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 38,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "45Gs9PZYfvU2",
+        "outputId": "cf1a74e2-d886-4abc-fa28-6631865f6257"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "{'pessoa_central': 'Flávio', 'fato': 'TSE manda suspender site que oferece criptomoedas por apoio a Flávio', 'tema': 'eleições', 'evidencia': 'TSE manda suspender site que oferece criptomoedas por apoio a Flávio', 'limite': 'null'}\n",
+            "Evidência literal: True\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Teste uma notícia antes de rodar o lote.\n",
+        "teste = extrair(amostra_ia.iloc[0][\"texto_analise\"])\n",
+        "print(teste)\n",
+        "print(\"Evidência literal:\", teste[\"evidencia\"] in amostra_ia.iloc[0][\"texto_analise\"])\n"
+      ],
+      "id": "45Gs9PZYfvU2"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 39,
+      "metadata": {
+        "id": "afOeS6tFfvU2"
+      },
+      "outputs": [],
+      "source": [
+        "fichas = []\n",
+        "for _, linha in amostra_ia.iterrows():\n",
+        "    resultado = extrair(linha[\"texto_analise\"])\n",
+        "    fichas.append({\"id\": linha[\"id\"], \"veiculo\": linha[\"veiculo\"],\n",
+        "                   \"foco_amostral\": linha[\"foco_amostral\"], **resultado,\n",
+        "                   \"evidencia_literal\": resultado[\"evidencia\"] in linha[\"texto_analise\"]})\n",
+        "fichas = pd.DataFrame(fichas)\n",
+        "fichas.to_csv(\"fichas_extraidas.csv\", index=False)"
+      ],
+      "id": "afOeS6tFfvU2"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "fichas[[\"id\", \"veiculo\", \"foco_amostral\", \"pessoa_central\", \"tema\", \"evidencia_literal\"]]"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 551
+        },
+        "id": "VEPOJ4MXthrp",
+        "outputId": "0cc08417-468d-40d4-8e04-d6e43191bcb8"
+      },
+      "id": "VEPOJ4MXthrp",
+      "execution_count": 40,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "     id         veiculo     foco_amostral    pessoa_central  \\\n",
+              "0   P19  Agência Brasil  Flávio Bolsonaro            Flávio   \n",
+              "1   P12  Agência Brasil  Flávio Bolsonaro  Flávio Bolsonaro   \n",
+              "2   P16  Agência Brasil  Flávio Bolsonaro  Flávio Bolsonaro   \n",
+              "3   P11  Agência Brasil  Flávio Bolsonaro  Flávio Bolsonaro   \n",
+              "4   P01  Agência Brasil              Lula              Lula   \n",
+              "5   P02  Agência Brasil              Lula              Lula   \n",
+              "6   P09  Agência Brasil              Lula              None   \n",
+              "7   P06  Agência Brasil              Lula              None   \n",
+              "8   P40      CNN Brasil  Flávio Bolsonaro          Michelle   \n",
+              "9   P33      CNN Brasil  Flávio Bolsonaro            Flávio   \n",
+              "10  P31      CNN Brasil  Flávio Bolsonaro            Flávio   \n",
+              "11  P37      CNN Brasil  Flávio Bolsonaro            Flávio   \n",
+              "12  P22      CNN Brasil              Lula              Lula   \n",
+              "13  P28      CNN Brasil              Lula           Janones   \n",
+              "14  P27      CNN Brasil              Lula     André Janones   \n",
+              "15  P23      CNN Brasil              Lula              Lula   \n",
+              "\n",
+              "                                           tema  evidencia_literal  \n",
+              "0                                      eleições               True  \n",
+              "1         Atividade religiosa e visita familiar               True  \n",
+              "2                 Criptomoedas e apoio político               True  \n",
+              "3                              Reunião política               True  \n",
+              "4                           Religião e política               True  \n",
+              "5                        Reeleição presidencial               True  \n",
+              "6        registro de canal na Justiça Eleitoral               True  \n",
+              "7                         Manifestação política               True  \n",
+              "8                                      Política               True  \n",
+              "9                          propaganda eleitoral               True  \n",
+              "10                                     Eleições               True  \n",
+              "11                                     Política               True  \n",
+              "12                                 Ato político               True  \n",
+              "13  Reativação de grupo de propaganda eleitoral               True  \n",
+              "14                     Registro de canal no TSE               True  \n",
+              "15                              opinião pública               True  "
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-e74b3eef-4cf4-45b5-934c-3314094bda08\" class=\"colab-df-container\">\n",
+              "    <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>id</th>\n",
+              "      <th>veiculo</th>\n",
+              "      <th>foco_amostral</th>\n",
+              "      <th>pessoa_central</th>\n",
+              "      <th>tema</th>\n",
+              "      <th>evidencia_literal</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>P19</td>\n",
+              "      <td>Agência Brasil</td>\n",
+              "      <td>Flávio Bolsonaro</td>\n",
+              "      <td>Flávio</td>\n",
+              "      <td>eleições</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>P12</td>\n",
+              "      <td>Agência Brasil</td>\n",
+              "      <td>Flávio Bolsonaro</td>\n",
+              "      <td>Flávio Bolsonaro</td>\n",
+              "      <td>Atividade religiosa e visita familiar</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>P16</td>\n",
+              "      <td>Agência Brasil</td>\n",
+              "      <td>Flávio Bolsonaro</td>\n",
+              "      <td>Flávio Bolsonaro</td>\n",
+              "      <td>Criptomoedas e apoio político</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>P11</td>\n",
+              "      <td>Agência Brasil</td>\n",
+              "      <td>Flávio Bolsonaro</td>\n",
+              "      <td>Flávio Bolsonaro</td>\n",
+              "      <td>Reunião política</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>P01</td>\n",
+              "      <td>Agência Brasil</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>Religião e política</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>5</th>\n",
+              "      <td>P02</td>\n",
+              "      <td>Agência Brasil</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>Reeleição presidencial</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>6</th>\n",
+              "      <td>P09</td>\n",
+              "      <td>Agência Brasil</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>None</td>\n",
+              "      <td>registro de canal na Justiça Eleitoral</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>7</th>\n",
+              "      <td>P06</td>\n",
+              "      <td>Agência Brasil</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>None</td>\n",
+              "      <td>Manifestação política</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>8</th>\n",
+              "      <td>P40</td>\n",
+              "      <td>CNN Brasil</td>\n",
+              "      <td>Flávio Bolsonaro</td>\n",
+              "      <td>Michelle</td>\n",
+              "      <td>Política</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>9</th>\n",
+              "      <td>P33</td>\n",
+              "      <td>CNN Brasil</td>\n",
+              "      <td>Flávio Bolsonaro</td>\n",
+              "      <td>Flávio</td>\n",
+              "      <td>propaganda eleitoral</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>10</th>\n",
+              "      <td>P31</td>\n",
+              "      <td>CNN Brasil</td>\n",
+              "      <td>Flávio Bolsonaro</td>\n",
+              "      <td>Flávio</td>\n",
+              "      <td>Eleições</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>11</th>\n",
+              "      <td>P37</td>\n",
+              "      <td>CNN Brasil</td>\n",
+              "      <td>Flávio Bolsonaro</td>\n",
+              "      <td>Flávio</td>\n",
+              "      <td>Política</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>12</th>\n",
+              "      <td>P22</td>\n",
+              "      <td>CNN Brasil</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>Ato político</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>13</th>\n",
+              "      <td>P28</td>\n",
+              "      <td>CNN Brasil</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>Janones</td>\n",
+              "      <td>Reativação de grupo de propaganda eleitoral</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>14</th>\n",
+              "      <td>P27</td>\n",
+              "      <td>CNN Brasil</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>André Janones</td>\n",
+              "      <td>Registro de canal no TSE</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>15</th>\n",
+              "      <td>P23</td>\n",
+              "      <td>CNN Brasil</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>Lula</td>\n",
+              "      <td>opinião pública</td>\n",
+              "      <td>True</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>\n",
+              "    <div class=\"colab-df-buttons\">\n",
+              "\n",
+              "  <div class=\"colab-df-container\">\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-e74b3eef-4cf4-45b5-934c-3314094bda08')\"\n",
+              "            title=\"Convert this dataframe to an interactive table.\"\n",
+              "            style=\"display:none;\">\n",
+              "\n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\" viewBox=\"0 -960 960 960\">\n",
+              "    <path d=\"M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z\"/>\n",
+              "  </svg>\n",
+              "    </button>\n",
+              "\n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-buttons div {\n",
+              "      margin-bottom: 4px;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "    <script>\n",
+              "      const buttonEl =\n",
+              "        document.querySelector('#df-e74b3eef-4cf4-45b5-934c-3314094bda08 button.colab-df-convert');\n",
+              "      buttonEl.style.display =\n",
+              "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "      async function convertToInteractive(key) {\n",
+              "        const element = document.querySelector('#df-e74b3eef-4cf4-45b5-934c-3314094bda08');\n",
+              "        const dataTable =\n",
+              "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                    [key], {});\n",
+              "        if (!dataTable) return;\n",
+              "\n",
+              "        const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "          '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "          + ' to learn more about interactive tables.';\n",
+              "        element.innerHTML = '';\n",
+              "        dataTable['output_type'] = 'display_data';\n",
+              "        await google.colab.output.renderOutput(dataTable, element);\n",
+              "        const docLink = document.createElement('div');\n",
+              "        docLink.innerHTML = docLinkHtml;\n",
+              "        element.appendChild(docLink);\n",
+              "      }\n",
+              "    </script>\n",
+              "  </div>\n",
+              "\n",
+              "\n",
+              "    </div>\n",
+              "  </div>\n"
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "dataframe",
+              "summary": "{\n  \"name\": \"fichas[[\\\"id\\\", \\\"veiculo\\\", \\\"foco_amostral\\\", \\\"pessoa_central\\\", \\\"tema\\\", \\\"evidencia_literal\\\"]]\",\n  \"rows\": 16,\n  \"fields\": [\n    {\n      \"column\": \"id\",\n      \"properties\": {\n        \"dtype\": \"string\",\n        \"num_unique_values\": 16,\n        \"samples\": [\n          \"P19\",\n          \"P12\",\n          \"P02\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"veiculo\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"CNN Brasil\",\n          \"Ag\\u00eancia Brasil\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"foco_amostral\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Lula\",\n          \"Fl\\u00e1vio Bolsonaro\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"pessoa_central\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 6,\n        \"samples\": [\n          \"Fl\\u00e1vio\",\n          \"Fl\\u00e1vio Bolsonaro\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tema\",\n      \"properties\": {\n        \"dtype\": \"string\",\n        \"num_unique_values\": 15,\n        \"samples\": [\n          \"propaganda eleitoral\",\n          \"Ato pol\\u00edtico\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"evidencia_literal\",\n      \"properties\": {\n        \"dtype\": \"boolean\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          true\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
+            }
+          },
+          "metadata": {},
+          "execution_count": 40
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "for id_caso in [\"P11\", \"P09\", \"P40\", \"P27\"]:\n",
+        "    ficha = fichas[fichas[\"id\"] == id_caso].iloc[0]\n",
+        "    texto = politica[politica[\"id\"] == id_caso].iloc[0]\n",
+        "    print(\"ID:\", id_caso, \"-\", ficha[\"veiculo\"], \"-\", ficha[\"foco_amostral\"])\n",
+        "    print(\"TEXTO:\", texto[\"texto_analise\"])\n",
+        "    print(\"FATO:\", ficha[\"fato\"])\n",
+        "    print(\"EVIDÊNCIA:\", ficha[\"evidencia\"])\n",
+        "    print(\"LIMITE:\", ficha[\"limite\"])\n",
+        "    print(\"LINK:\", texto[\"url\"], \"\\n\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ysRCF5U5uBmY",
+        "outputId": "81eae87c-727f-41b4-b678-4236f9c9926b"
+      },
+      "id": "ysRCF5U5uBmY",
+      "execution_count": 41,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "ID: P11 - Agência Brasil - Flávio Bolsonaro\n",
+            "TEXTO: Flávio passa domingo reunido com prefeitos e vereadores de São Paulo. Candidato do PL fez críticas ao presidente Lula e promessas econômicas. Pelas redes sociais, Flávio Bolsonaro afirmou que os cortes de gastos públicos prometidos por ele não virão da área social.\n",
+            "FATO: Flávio Bolsonaro passou domingo reunido com prefeitos e vereadores de São Paulo\n",
+            "EVIDÊNCIA: Flávio passa domingo reunido com prefeitos e vereadores de São Paulo\n",
+            "LIMITE: null\n",
+            "LINK: https://agenciabrasil.ebc.com.br/politica/noticia/2026-10/flavio-passa-domingo-reunido-com-prefeitos-e-vereadores-de-sao-paulo \n",
+            "\n",
+            "ID: P09 - Agência Brasil - Lula\n",
+            "TEXTO: Campanha registra canal Exército do Lula na Justiça Eleitoral. Mesmo com o registro, Canal deve aguardar 48 horas para retomar publicações no WhatsApp.\n",
+            "FATO: Campanha registra canal Exército do Lula na Justiça Eleitoral.\n",
+            "EVIDÊNCIA: Campanha registra canal Exército do Lula na Justiça Eleitoral.\n",
+            "LIMITE: 48 horas\n",
+            "LINK: https://agenciabrasil.ebc.com.br/politica/noticia/2026-10/campanha-registra-canal-exercito-do-lula-na-justica-eleitoral \n",
+            "\n",
+            "ID: P40 - CNN Brasil - Flávio Bolsonaro\n",
+            "TEXTO: Michelle sinaliza preferência por exercer mandato caso Flávio seja eleito. Nome da ex-primeira-dama chegou a ser cogitado em eventual mudança na Esplanada dos Ministérios\n",
+            "FATO: Michelle sinaliza preferência por exercer mandato caso Flávio seja eleito\n",
+            "EVIDÊNCIA: Michelle sinaliza preferência por exercer mandato caso Flávio seja eleito\n",
+            "LIMITE: Esplanada dos Ministérios\n",
+            "LINK: https://www.cnnbrasil.com.br/blogs/gustavo-uribe/eleicoes/michelle-sinaliza-preferencia-por-exercer-mandato-caso-flavio-seja-eleito/ \n",
+            "\n",
+            "ID: P27 - CNN Brasil - Lula\n",
+            "TEXTO: Canal \"Exército do Lula\" é registrado junto ao TSE. Condição foi imposta pelo ministros Kassio Nunes Marques para que o canal criado por André Janones volte a funcionar\n",
+            "FATO: Canal \"Exército do Lula\" é registrado junto ao TSE\n",
+            "EVIDÊNCIA: Canal \"Exército do Lula\" é registrado junto ao TSE\n",
+            "LIMITE: Condição foi imposta pelo ministros Kassio Nunes Marques para que o canal criado por André Janones volte a funcionar\n",
+            "LINK: https://www.cnnbrasil.com.br/blogs/gustavo-uribe/eleicoes/canal-exercito-do-lula-e-registrado-junto-ao-tse/ \n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Comentários**\n",
+        "\n",
+        "Rodei o lote uma vez, com 16 notícias (4 por veículo e foco). Todas as fichas voltaram com evidencia_literal True.\n",
+        "\n",
+        "O que apareceu na tabela inteira:\n",
+        "\n",
+        "A pessoa_central veio None em P09 e P06 (Agência Brasil, foco Lula).\n",
+        "Em P40, P28 e P27 a pessoa central não é o candidato do foco (Michelle e Janones).\n",
+        "O mesmo nome veio de dois jeitos: “Flávio” e “Flávio Bolsonaro”.\n",
+        "Os temas ficaram genéricos (“Política”, “Eleições”) e com caixa diferente.\n",
+        "O campo limite não virou uma limitação em nenhuma das quatro fichas auditadas.\n",
+        "\n",
+        "**Auditoria das 4 fichas**\n",
+        "\n",
+        "**P11 (Agência Brasil, foco Flávio)**\n",
+        "\n",
+        "A ficha está incompleta. O fato só repete a manchete (reunião com prefeitos e vereadores de São Paulo).\n",
+        "Ficou de fora o que é mais importante no texto: as críticas a Lula, as promessas econômicas e a afirmação de que os cortes de gastos não virão da área social.\n",
+        "O tema “Reunião política” é genérico e o limite veio null.\n",
+        "Marcação: ausência.\n",
+        "\n",
+        "**P09 (Agência Brasil, foco Lula)**\n",
+        "\n",
+        "A pessoa_central veio None. Faz sentido em parte, porque quem registra o canal é a campanha e Lula só aparece no nome do canal. Mas a ficha não diz quem é o agente.\n",
+        "O fato repete a manchete. A informação de que o canal precisa esperar 48 horas para voltar a publicar no WhatsApp foi parar no campo limite e não no fato.\n",
+        "Marcação: ausência (agente) e campo usado errado.\n",
+        "\n",
+        "**P40 (CNN Brasil, foco Flávio)**\n",
+        "\n",
+        "A pessoa central é Michelle, porque é ela quem sinaliza a preferência. Flávio só aparece na condição (“caso seja eleito”). Então o foco da amostra não quer dizer que o candidato é o agente da notícia.\n",
+        "“Exercer mandato” ficou vago, porque o texto não diz qual mandato e a ficha também não.\n",
+        "Marcação: ambiguidade e campo usado errado.\n",
+        "\n",
+        "**P27 (CNN Brasil, foco Lula)**\n",
+        "\n",
+        "O fato está certo, mas só fala do registro do canal. Ficou fora quem impôs a condição e quem criou o canal.\n",
+        "A pessoa central é Janones, que só aparece como criador do canal. O texto não diz quem fez o registro, e Lula aparece só no nome do canal.\n",
+        "O limite copiou a segunda frase inteira do texto.\n",
+        "Marcação: atribuição ambígua e campo usado errado."
+      ],
+      "metadata": {
+        "id": "xj14iEEuudZY"
+      },
+      "id": "xj14iEEuudZY"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Jngd17GpfvU2"
+      },
+      "source": [
+        "## 4. Busca — Aula 23\n",
+        "\n",
+        "Faça uma pergunta substantiva. Compare top 3 de busca por palavra e de busca semântica nas 40 matérias. Registre IDs, títulos, links e uma avaliação manual da relevância. A consulta precisa poder ser repetida."
+      ],
+      "id": "Jngd17GpfvU2"
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 42,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "K2xgpvNofvU2",
+        "outputId": "5c9ac4dc-3cef-4c90-888b-786233afc637"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "P21 MDB em dez estados do Norte e Nordeste declaram apoio à reeleição de Lula https://www.cnnbrasil.com.br/eleicoes/mdb-em-dez-estados-do-norte-e-nordeste-declaram-apoio-a-reeleicao-de-lula/\n",
+            "P04 Estudantes fazem ato no Rio de Janeiro em defesa de voto em Lula https://agenciabrasil.ebc.com.br/politica/noticia/2026-10/estudantes-fazem-ato-no-rio-de-janeiro-em-defesa-de-voto-em-lula\n",
+            "P37 Centrão mira pastas com maior orçamento se Flávio vencer https://www.cnnbrasil.com.br/blogs/isabel-mega/eleicoes/centrao-mira-pastas-com-maior-orcamento-se-flavio-vencer/\n"
+          ]
+        }
+      ],
+      "source": [
+        "pergunta = \"Quais notícias tratam de apoio de lideranças políticas a candidatos?\"\n",
+        "consulta_palavras = vetor.transform([pergunta.lower()])\n",
+        "ordem_palavras = (X @ consulta_palavras.T).toarray().ravel().argsort()[-3:][::-1]\n",
+        "for pos in ordem_palavras:\n",
+        "    linha = politica.iloc[pos]\n",
+        "    print(linha[\"id\"], linha[\"titulo\"], linha[\"url\"])"
+      ],
+      "id": "K2xgpvNofvU2"
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sentence_transformers import SentenceTransformer\n",
+        "from sklearn.metrics.pairwise import cosine_similarity\n",
+        "import torch\n",
+        "dispositivo = \"cuda\" if torch.cuda.is_available() else \"cpu\"\n",
+        "print(\"Dispositivo:\", dispositivo)\n",
+        "modelo_busca = SentenceTransformer(\"sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2\", device=dispositivo)\n",
+        "vetores_noticias = modelo_busca.encode(politica[\"texto_analise\"].tolist(), normalize_embeddings=True)\n",
+        "vetor_pergunta = modelo_busca.encode([pergunta], normalize_embeddings=True)\n",
+        "scores = cosine_similarity(vetor_pergunta, vetores_noticias)[0]\n",
+        "for pos in scores.argsort()[-3:][::-1]:\n",
+        "    linha = politica.iloc[pos]\n",
+        "    print(linha[\"id\"], round(float(scores[pos]), 3), linha[\"titulo\"], linha[\"url\"])"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 138,
+          "referenced_widgets": [
+            "e04064a6ebe540b4a9ee13009651fe05",
+            "31abb3276c2240d3849e91fbc1158e78",
+            "6e0fe5d746bd46309a4028df47b76393",
+            "c7087b00f86b4783bcd20091235d46fd",
+            "2b547adda6194d21a20a8928e7423cbd",
+            "f57a260d2c6c4aec986c36545697cf9e",
+            "9485d3b8d6704f55bdf6864cd7825b46",
+            "46751e89adb64f4f91a1080a7e1bc50b",
+            "727646fdb54446faae85d766426a843e",
+            "6b2d61f35e8847c1b1b5cf1a0b21411f",
+            "1d9fa3ec9ce9444f8afa3c3e8f6676e1"
+          ]
+        },
+        "id": "03EtE93SvePI",
+        "outputId": "523e1f2a-1924-4116-f606-8a647b19e79f"
+      },
+      "id": "03EtE93SvePI",
+      "execution_count": 43,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Dispositivo: cpu\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]"
+            ],
+            "application/vnd.jupyter.widget-view+json": {
+              "version_major": 2,
+              "version_minor": 0,
+              "model_id": "e04064a6ebe540b4a9ee13009651fe05"
+            }
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "P14 0.543 Flávio Bolsonaro recebe apoio de governadores eleitos e Cury https://agenciabrasil.ebc.com.br/politica/noticia/2026-10/flavio-bolsonaro-recebe-apoios-de-governadores-eleitos-e-cury\n",
+            "P21 0.513 MDB em dez estados do Norte e Nordeste declaram apoio à reeleição de Lula https://www.cnnbrasil.com.br/eleicoes/mdb-em-dez-estados-do-norte-e-nordeste-declaram-apoio-a-reeleicao-de-lula/\n",
+            "P40 0.501 Michelle sinaliza preferência por exercer mandato caso Flávio seja eleito https://www.cnnbrasil.com.br/blogs/gustavo-uribe/eleicoes/michelle-sinaliza-preferencia-por-exercer-mandato-caso-flavio-seja-eleito/\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Comentários**\n",
+        "\n",
+        "Usei a mesma pergunta, “Quais notícias tratam de apoio de lideranças políticas a candidatos?”, nas duas buscas.\n",
+        "\n",
+        "Busca por palavra: P21 (CNN Brasil, MDB declara apoio à reeleição de Lula), P04 (Agência Brasil, estudantes fazem ato em defesa de voto em Lula) e P37 (CNN Brasil, Centrão mira pastas se Flávio vencer).\n",
+        "Busca semântica: P14 (Agência Brasil, Flávio recebe apoio de governadores eleitos e Cury, 0.543), P21 (0.513) e P40 (CNN Brasil, Michelle sinaliza preferência por exercer mandato caso Flávio seja eleito, 0.501).\n",
+        "\n",
+        "Minha avaliação de relevância\n",
+        "\n",
+        "P21: relevante, é um partido em vários estados apoiando um candidato.\n",
+        "\n",
+        "P14: relevante, é a mais direta, governadores apoiando Flávio.\n",
+        "\n",
+        "P04: parcial, é apoio de estudantes e não de lideranças políticas.\n",
+        "\n",
+        "P37: pouco relevante, fala de negociação de cargos, e o apoio fica só implícito.\n",
+        "\n",
+        "P40: parcial, fala do mandato de Michelle e não de apoio de uma liderança a um candidato.\n",
+        "\n",
+        "Comparação: a P21 apareceu nas duas buscas. Só a busca semântica trouxe a P14, e só a busca por palavra trouxe P04 e P37. Pela minha avaliação, a semântica teve 2 resultados relevantes entre 3 e a de palavras teve 1. Foi só uma pergunta e uma pessoa avaliando, então não dá para generalizar."
+      ],
+      "metadata": {
+        "id": "cK5mdHmSw4oR"
+      },
+      "id": "cK5mdHmSw4oR"
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "o_ZOSUDofvU2"
+      },
+      "source": [
+        "## 5. Relatório e entrega\n",
+        "\n",
+        "No `README.md`, siga esta ordem: objetivo e pergunta; preparação; revisão de 21–22; roteiro de análise; prática aplicada; resultados do desafio; entrega; declaração de uso de IA; checklist. Inclua fonte, janela temporal, regra de seleção, tabela de denominadores, pelo menos dois achados com IDs/URLs, quatro fichas auditadas, tópico confuso, comparação de buscas e limitações. Separe **descrição dos dados** de **interpretação**. Não chame a diferença observada de “viés do jornal” sem um protocolo mais amplo.\n",
+        "\n",
+        "Faça um commit de progresso e um de entrega. Prepare-se para explicar uma decisão de limpeza, um tópico, uma ficha e uma busca.\n",
+        "\n",
+        "- [ ] 40 linhas: 10 por veículo × foco.\n",
+        "- [ ] Chave pessoal fora dos arquivos entregues.\n",
+        "- [ ] Extração em amostra de 16, com quatro auditorias.\n",
+        "- [ ] Conclusões citam IDs e links e respeitam o recorte.\n",
+        "- [ ] Notebook executa de cima a baixo no Colab."
+      ],
+      "id": "o_ZOSUDofvU2"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "colab": {
+      "provenance": []
+    },
+    "widgets": {
+      "application/vnd.jupyter.widget-state+json": {
+        "version_major": 2,
+        "version_minor": 0,
+        "state": {
+          "e04064a6ebe540b4a9ee13009651fe05": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "HBoxModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_dom_classes": [],
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "HBoxModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/controls",
+              "_view_module_version": "1.5.0",
+              "_view_name": "HBoxView",
+              "box_style": "",
+              "children": [
+                "IPY_MODEL_31abb3276c2240d3849e91fbc1158e78",
+                "IPY_MODEL_6e0fe5d746bd46309a4028df47b76393",
+                "IPY_MODEL_c7087b00f86b4783bcd20091235d46fd"
+              ],
+              "layout": "IPY_MODEL_2b547adda6194d21a20a8928e7423cbd"
+            }
+          },
+          "31abb3276c2240d3849e91fbc1158e78": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "HTMLModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_dom_classes": [],
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "HTMLModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/controls",
+              "_view_module_version": "1.5.0",
+              "_view_name": "HTMLView",
+              "description": "",
+              "description_tooltip": null,
+              "layout": "IPY_MODEL_f57a260d2c6c4aec986c36545697cf9e",
+              "placeholder": "​",
+              "style": "IPY_MODEL_9485d3b8d6704f55bdf6864cd7825b46",
+              "value": "Loading weights: 100%"
+            }
+          },
+          "6e0fe5d746bd46309a4028df47b76393": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "FloatProgressModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_dom_classes": [],
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "FloatProgressModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/controls",
+              "_view_module_version": "1.5.0",
+              "_view_name": "ProgressView",
+              "bar_style": "success",
+              "description": "",
+              "description_tooltip": null,
+              "layout": "IPY_MODEL_46751e89adb64f4f91a1080a7e1bc50b",
+              "max": 199,
+              "min": 0,
+              "orientation": "horizontal",
+              "style": "IPY_MODEL_727646fdb54446faae85d766426a843e",
+              "value": 199
+            }
+          },
+          "c7087b00f86b4783bcd20091235d46fd": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "HTMLModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_dom_classes": [],
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "HTMLModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/controls",
+              "_view_module_version": "1.5.0",
+              "_view_name": "HTMLView",
+              "description": "",
+              "description_tooltip": null,
+              "layout": "IPY_MODEL_6b2d61f35e8847c1b1b5cf1a0b21411f",
+              "placeholder": "​",
+              "style": "IPY_MODEL_1d9fa3ec9ce9444f8afa3c3e8f6676e1",
+              "value": " 199/199 [00:00&lt;00:00, 2759.95it/s]"
+            }
+          },
+          "2b547adda6194d21a20a8928e7423cbd": {
+            "model_module": "@jupyter-widgets/base",
+            "model_name": "LayoutModel",
+            "model_module_version": "1.2.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/base",
+              "_model_module_version": "1.2.0",
+              "_model_name": "LayoutModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "LayoutView",
+              "align_content": null,
+              "align_items": null,
+              "align_self": null,
+              "border": null,
+              "bottom": null,
+              "display": null,
+              "flex": null,
+              "flex_flow": null,
+              "grid_area": null,
+              "grid_auto_columns": null,
+              "grid_auto_flow": null,
+              "grid_auto_rows": null,
+              "grid_column": null,
+              "grid_gap": null,
+              "grid_row": null,
+              "grid_template_areas": null,
+              "grid_template_columns": null,
+              "grid_template_rows": null,
+              "height": null,
+              "justify_content": null,
+              "justify_items": null,
+              "left": null,
+              "margin": null,
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": null,
+              "object_fit": null,
+              "object_position": null,
+              "order": null,
+              "overflow": null,
+              "overflow_x": null,
+              "overflow_y": null,
+              "padding": null,
+              "right": null,
+              "top": null,
+              "visibility": null,
+              "width": null
+            }
+          },
+          "f57a260d2c6c4aec986c36545697cf9e": {
+            "model_module": "@jupyter-widgets/base",
+            "model_name": "LayoutModel",
+            "model_module_version": "1.2.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/base",
+              "_model_module_version": "1.2.0",
+              "_model_name": "LayoutModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "LayoutView",
+              "align_content": null,
+              "align_items": null,
+              "align_self": null,
+              "border": null,
+              "bottom": null,
+              "display": null,
+              "flex": null,
+              "flex_flow": null,
+              "grid_area": null,
+              "grid_auto_columns": null,
+              "grid_auto_flow": null,
+              "grid_auto_rows": null,
+              "grid_column": null,
+              "grid_gap": null,
+              "grid_row": null,
+              "grid_template_areas": null,
+              "grid_template_columns": null,
+              "grid_template_rows": null,
+              "height": null,
+              "justify_content": null,
+              "justify_items": null,
+              "left": null,
+              "margin": null,
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": null,
+              "object_fit": null,
+              "object_position": null,
+              "order": null,
+              "overflow": null,
+              "overflow_x": null,
+              "overflow_y": null,
+              "padding": null,
+              "right": null,
+              "top": null,
+              "visibility": null,
+              "width": null
+            }
+          },
+          "9485d3b8d6704f55bdf6864cd7825b46": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "DescriptionStyleModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "DescriptionStyleModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "StyleView",
+              "description_width": ""
+            }
+          },
+          "46751e89adb64f4f91a1080a7e1bc50b": {
+            "model_module": "@jupyter-widgets/base",
+            "model_name": "LayoutModel",
+            "model_module_version": "1.2.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/base",
+              "_model_module_version": "1.2.0",
+              "_model_name": "LayoutModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "LayoutView",
+              "align_content": null,
+              "align_items": null,
+              "align_self": null,
+              "border": null,
+              "bottom": null,
+              "display": null,
+              "flex": null,
+              "flex_flow": null,
+              "grid_area": null,
+              "grid_auto_columns": null,
+              "grid_auto_flow": null,
+              "grid_auto_rows": null,
+              "grid_column": null,
+              "grid_gap": null,
+              "grid_row": null,
+              "grid_template_areas": null,
+              "grid_template_columns": null,
+              "grid_template_rows": null,
+              "height": null,
+              "justify_content": null,
+              "justify_items": null,
+              "left": null,
+              "margin": null,
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": null,
+              "object_fit": null,
+              "object_position": null,
+              "order": null,
+              "overflow": null,
+              "overflow_x": null,
+              "overflow_y": null,
+              "padding": null,
+              "right": null,
+              "top": null,
+              "visibility": null,
+              "width": null
+            }
+          },
+          "727646fdb54446faae85d766426a843e": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "ProgressStyleModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "ProgressStyleModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "StyleView",
+              "bar_color": null,
+              "description_width": ""
+            }
+          },
+          "6b2d61f35e8847c1b1b5cf1a0b21411f": {
+            "model_module": "@jupyter-widgets/base",
+            "model_name": "LayoutModel",
+            "model_module_version": "1.2.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/base",
+              "_model_module_version": "1.2.0",
+              "_model_name": "LayoutModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "LayoutView",
+              "align_content": null,
+              "align_items": null,
+              "align_self": null,
+              "border": null,
+              "bottom": null,
+              "display": null,
+              "flex": null,
+              "flex_flow": null,
+              "grid_area": null,
+              "grid_auto_columns": null,
+              "grid_auto_flow": null,
+              "grid_auto_rows": null,
+              "grid_column": null,
+              "grid_gap": null,
+              "grid_row": null,
+              "grid_template_areas": null,
+              "grid_template_columns": null,
+              "grid_template_rows": null,
+              "height": null,
+              "justify_content": null,
+              "justify_items": null,
+              "left": null,
+              "margin": null,
+              "max_height": null,
+              "max_width": null,
+              "min_height": null,
+              "min_width": null,
+              "object_fit": null,
+              "object_position": null,
+              "order": null,
+              "overflow": null,
+              "overflow_x": null,
+              "overflow_y": null,
+              "padding": null,
+              "right": null,
+              "top": null,
+              "visibility": null,
+              "width": null
+            }
+          },
+          "1d9fa3ec9ce9444f8afa3c3e8f6676e1": {
+            "model_module": "@jupyter-widgets/controls",
+            "model_name": "DescriptionStyleModel",
+            "model_module_version": "1.5.0",
+            "state": {
+              "_model_module": "@jupyter-widgets/controls",
+              "_model_module_version": "1.5.0",
+              "_model_name": "DescriptionStyleModel",
+              "_view_count": null,
+              "_view_module": "@jupyter-widgets/base",
+              "_view_module_version": "1.2.0",
+              "_view_name": "StyleView",
+              "description_width": ""
+            }
+          }
+        }
+      }
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

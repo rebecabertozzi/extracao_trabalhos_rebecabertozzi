@@ -34,16 +34,16 @@ Na aula 21 vimos como limpar texto com regex (minúsculas, tirar links, ficar s�
 
 - **Preparação:** Os tokens foram de 1279 para 895, sem textos vazios nem duplicados. Mantive "não" e "sem" para não inverter o sentido (como em "sem áudio", na P33). Um problema que apareceu: "São Paulo" virou "paulo", porque "são" estava na minha lista de stopwords (P11).
 - **Tópicos:** Os quatro nomes provisórios foram "segundo turno e conselhos de Bolsonaro a Flávio", "canal Exército do Lula e TSE", "atos e apoios no Rio" e "campanha e custo de vida".
-- **Extração:** Das 16 fichas, todas voltaram com a evidência literal (True).
+- **Extração:** Das 16 fichas, 15 voltaram com a evidência literal (True). A P33 (CNN Brasil) voltou com False.
 - **Busca:** Usei a pergunta "Quais notícias tratam de apoio de lideranças políticas a candidatos?". A busca por palavra trouxe P21, P04 e P37. A busca semântica trouxe P14, P21 e P40.
 
 ## Resultados do desafio
 
 ### Descrição dos dados
 
-- Nos quatro grupos, o candidato do foco é o mais citado nos títulos e resumos.
-- O tópico 0 concentra a CNN com foco em Flávio. O tópico 2 concentra a Agência Brasil.
-- As 16 fichas tiveram evidência literal, mas as 4 que auditei tinham problemas.
+- Nos quatro grupos, o candidato do foco é o mais citado nos títulos e resumos (em número de menções, com 10 matérias por grupo).
+- O tópico 0 concentra a CNN com foco em Flávio (6 das 10 matérias). O tópico 2 pegou 6 das 10 matérias da Agência Brasil com foco em Flávio e 4 das 10 com foco em Lula.
+- 15 das 16 fichas tiveram evidência literal (a exceção foi a P33). Mesmo assim, as 4 que auditei tinham problemas: ausências, campos usados errado e atribuições ambíguas.
 
 ### Achados com IDs e links
 
@@ -78,5 +78,5 @@ A P21 apareceu nas duas buscas. Só a semântica trouxe a P14 (relevante) e só 
 
 ## Declaração de uso de IA
 
-Usei o Claude para ajudar em algumas interpretações que não estava conseguindo entender. Os códigos são os das aulas 21, 22 e 23.
+Usei o Claude para ajudar em algumas interpretações que não estava conseguindo entender. 
 
